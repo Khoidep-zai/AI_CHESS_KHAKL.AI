@@ -241,93 +241,65 @@ class Bishop(Piece):
         return self.get_valid_piece_takes(game_state) + self.get_valid_peaceful_moves(game_state)
 
     def traverse(self, game_state):
-        """
-        Duyệt qua tất cả các hướng đường chéo có thể di chuyển của Tượng
-        Trả về tuple (các ô di chuyển được, các ô có thể ăn quân)
-        """
-        _peaceful_moves = []  # Danh sách các ô di chuyển được
-        _piece_takes = []     # Danh sách các ô có thể ăn quân
+        _peaceful_moves = []
+        _piece_takes = []
 
-        # Kiểm tra hướng chéo trên-trái của Tượng
-        self._breaking_point = False
-        self._up = 1
-        self._down = 1
-        self._left = 1
-        self._right = 1
-        while self.get_col_number() - self._left >= 0 and self.get_row_number() - self._up >= 0 and not self._breaking_point:
-            # Khi ô đích trống
-            if game_state.get_piece(self.get_row_number() - self._up, self.get_col_number() - self._left) is Player.EMPTY:
-                _peaceful_moves.append((self.get_row_number() - self._up, self.get_col_number() - self._left))
-                self._left += 1
-                self._up += 1
-            # Khi ô đích có quân đối phương
-            elif game_state.is_valid_piece(self.get_row_number() - self._up, self.get_col_number() - self._left) and \
-                    not game_state.get_piece(self.get_row_number() - self._up, self.get_col_number() - self._left).is_player(self.get_player()):
-                _piece_takes.append((self.get_row_number() - self._up, self.get_col_number() - self._left))
-                self._breaking_point = True
+        # Hướng chéo trên-trái
+        up, left = 1, 1
+        while self.get_col_number() - left >= 0 and self.get_row_number() - up >= 0:
+            if game_state.get_piece(self.get_row_number() - up, self.get_col_number() - left) == Player.EMPTY:
+                _peaceful_moves.append((self.get_row_number() - up, self.get_col_number() - left))
+            elif game_state.is_valid_piece(self.get_row_number() - up, self.get_col_number() - left) and \
+                    not game_state.get_piece(self.get_row_number() - up, self.get_col_number() - left).is_player(self.get_player()):
+                _piece_takes.append((self.get_row_number() - up, self.get_col_number() - left))
+                break
             else:
-                self._breaking_point = True
+                break
+            up += 1
+            left += 1
 
-        # Kiểm tra hướng chéo trên-phải của Tượng
-        self._breaking_point = False
-        self._up = 1
-        self._down = 1
-        self._left = 1
-        self._right = 1
-        while self.get_col_number() + self._right < 8 and self.get_row_number() - self._up >= 0 and not self._breaking_point:
-            # Khi ô đích trống
-            if game_state.get_piece(self.get_row_number() - self._up, self.get_col_number() + self._right) is Player.EMPTY:
-                _peaceful_moves.append((self.get_row_number() - self._up, self.get_col_number() + self._right))
-                self._right += 1
-                self._up += 1
-            # Khi ô đích có quân đối phương
-            elif game_state.is_valid_piece(self.get_row_number() - self._up, self.get_col_number() + self._right) and \
-                    not game_state.get_piece(self.get_row_number() - self._up, self.get_col_number() + self._right).is_player(self.get_player()):
-                _piece_takes.append((self.get_row_number() - self._up, self.get_col_number() + self._right))
-                self._breaking_point = True
+        # Hướng chéo trên-phải
+        up, right = 1, 1
+        while self.get_col_number() + right < 8 and self.get_row_number() - up >= 0:
+            if game_state.get_piece(self.get_row_number() - up, self.get_col_number() + right) == Player.EMPTY:
+                _peaceful_moves.append((self.get_row_number() - up, self.get_col_number() + right))
+            elif game_state.is_valid_piece(self.get_row_number() - up, self.get_col_number() + right) and \
+                    not game_state.get_piece(self.get_row_number() - up, self.get_col_number() + right).is_player(self.get_player()):
+                _piece_takes.append((self.get_row_number() - up, self.get_col_number() + right))
+                break
             else:
-                self._breaking_point = True
+                break
+            up += 1
+            right += 1
 
-        # Kiểm tra hướng chéo dưới-trái của Tượng
-        self._breaking_point = False
-        self._up = 1
-        self._down = 1
-        self._left = 1
-        self._right = 1
-        while self.get_col_number() - self._left >= 0 and self.get_row_number() + self._down < 8 and not self._breaking_point:
-            # Khi ô đích trống
-            if game_state.get_piece(self.get_row_number() + self._down, self.get_col_number() - self._left) is Player.EMPTY:
-                _peaceful_moves.append((self.get_row_number() + self._down, self.get_col_number() - self._left))
-                self._down += 1
-                self._left += 1
-            # Khi ô đích có quân đối phương
-            elif game_state.is_valid_piece(self.get_row_number() + self._down, self.get_col_number() - self._left) and \
-                    not game_state.get_piece(self.get_row_number() + self._down, self.get_col_number() - self._left).is_player(self.get_player()):
-                _piece_takes.append((self.get_row_number() + self._down, self.get_col_number() - self._left))
-                self._breaking_point = True
+        # Hướng chéo dưới-trái
+        down, left = 1, 1
+        while self.get_col_number() - left >= 0 and self.get_row_number() + down < 8:
+            if game_state.get_piece(self.get_row_number() + down, self.get_col_number() - left) == Player.EMPTY:
+                _peaceful_moves.append((self.get_row_number() + down, self.get_col_number() - left))
+            elif game_state.is_valid_piece(self.get_row_number() + down, self.get_col_number() - left) and \
+                    not game_state.get_piece(self.get_row_number() + down, self.get_col_number() - left).is_player(self.get_player()):
+                _piece_takes.append((self.get_row_number() + down, self.get_col_number() - left))
+                break
             else:
-                self._breaking_point = True
+                break
+            down += 1
+            left += 1
 
-        # Kiểm tra hướng chéo dưới-phải của Tượng
-        self._breaking_point = False
-        self._up = 1
-        self._down = 1
-        self._left = 1
-        self._right = 1
-        while self.get_col_number() + self._right < 8 and self.get_row_number() + self._down < 8 and not self._breaking_point:
-            # Khi ô đích trống
-            if game_state.get_piece(self.get_row_number() + self._down, self.get_col_number() + self._right) is Player.EMPTY:
-                _peaceful_moves.append((self.get_row_number() + self._down, self.get_col_number() + self._right))
-                self._down += 1
-                self._right += 1
-            # Khi ô đích có quân đối phương
-            elif game_state.is_valid_piece(self.get_row_number() + self._down, self.get_col_number() + self._right) and \
-                    not game_state.get_piece(self.get_row_number() + self._down, self.get_col_number() + self._right).is_player(
-                        self.get_player()):
-                _piece_takes.append((self.get_row_number() + self._down, self.get_col_number() + self._right))
-                self._breaking_point = True
+        # Hướng chéo dưới-phải
+        down, right = 1, 1
+        while self.get_col_number() + right < 8 and self.get_row_number() + down < 8:
+            if game_state.get_piece(self.get_row_number() + down, self.get_col_number() + right) == Player.EMPTY:
+                _peaceful_moves.append((self.get_row_number() + down, self.get_col_number() + right))
+            elif game_state.is_valid_piece(self.get_row_number() + down, self.get_col_number() + right) and \
+                    not game_state.get_piece(self.get_row_number() + down, self.get_col_number() + right).is_player(self.get_player()):
+                _piece_takes.append((self.get_row_number() + down, self.get_col_number() + right))
+                break
             else:
-                self._breaking_point = True
+                break
+            down += 1
+            right += 1
+
         return (_peaceful_moves, _piece_takes)
 
 
@@ -403,23 +375,73 @@ class Pawn(Piece):
 
 
 # Lớp Hậu (Queen) - đi ngang, dọc, chéo không giới hạn số ô (miễn không bị cản)
-class Queen(Rook, Bishop):
+class Queen(Piece):
     """
-    Lớp Hậu - đi ngang, dọc, chéo không giới hạn số ô (miễn không bị cản)
+    Lớp Hậu - implement trực tiếp logic di chuyển 8 hướng
     """
+    
+    def __init__(self, name, row_number, col_number, player):
+        super().__init__(name, row_number, col_number, player)
+        self.has_moved = False
+    
     def get_valid_peaceful_moves(self, game_state):
-        moves_rook = Rook.get_valid_peaceful_moves(self, game_state)
-        moves_bishop = Bishop.get_valid_peaceful_moves(self, game_state)
-        return moves_rook + moves_bishop
+        """Lấy danh sách các ô có thể di chuyển mà không ăn quân"""
+        return self.traverse(game_state)[0]
 
     def get_valid_piece_takes(self, game_state):
-        takes_rook = Rook.get_valid_piece_takes(self, game_state)
-        takes_bishop = Bishop.get_valid_piece_takes(self, game_state)
-        return takes_rook + takes_bishop
+        """Lấy danh sách các ô có thể ăn quân"""
+        return self.traverse(game_state)[1]
 
     def get_valid_piece_moves(self, game_state):
+        """Lấy tất cả các nước đi hợp lệ của Hậu"""
         return self.get_valid_peaceful_moves(game_state) + self.get_valid_piece_takes(game_state)
-
+    
+    def traverse(self, game_state):
+        """
+        Duyệt qua tất cả 8 hướng có thể di chuyển của Hậu
+        Trả về tuple (các ô di chuyển được, các ô có thể ăn quân)
+        """
+        _peaceful_moves = []
+        _piece_takes = []
+        
+        # 8 hướng di chuyển: 4 hướng thẳng + 4 hướng chéo
+        directions = [
+            (-1, 0),   # lên
+            (1, 0),    # xuống  
+            (0, -1),   # trái
+            (0, 1),    # phải
+            (-1, -1),  # chéo trên-trái
+            (-1, 1),   # chéo trên-phải
+            (1, -1),   # chéo dưới-trái
+            (1, 1)     # chéo dưới-phải
+        ]
+        
+        for row_dir, col_dir in directions:
+            step = 1
+            while True:
+                new_row = self.get_row_number() + (row_dir * step)
+                new_col = self.get_col_number() + (col_dir * step)
+                
+                # Kiểm tra xem có ra ngoài bàn cờ không
+                if new_row < 0 or new_row >= 8 or new_col < 0 or new_col >= 8:
+                    break
+                
+                piece_at_square = game_state.get_piece(new_row, new_col)
+                
+                # Nếu ô trống
+                if piece_at_square is Player.EMPTY:
+                    _peaceful_moves.append((new_row, new_col))
+                    step += 1
+                # Nếu có quân đối phương
+                elif (game_state.is_valid_piece(new_row, new_col) and 
+                      not piece_at_square.is_player(self.get_player())):
+                    _piece_takes.append((new_row, new_col))
+                    break  # Dừng lại sau khi gặp quân
+                # Nếu có quân cùng phe
+                else:
+                    break  # Dừng lại
+        
+        return (_peaceful_moves, _piece_takes)
 
 # Lớp Vua (King)
 class King(Piece):
