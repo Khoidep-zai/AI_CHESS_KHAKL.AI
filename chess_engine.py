@@ -369,7 +369,7 @@ class game_state:
                   (not self.whose_turn() and self.get_piece(current_square_row, current_square_col).is_player(
                       Player.PLAYER_2)))):
 
-            # The chess piece at the starting square
+            # Quân cờ tại ô bắt đầu
             moving_piece = self.get_piece(current_square_row, current_square_col)
 
             valid_moves = self.get_valid_moves(starting_square)
@@ -386,7 +386,7 @@ class game_state:
                             move.castling_move((0, 0), (0, 2), self)
                             self.move_log.append(move)
 
-                            # move rook
+                            # Di chuyển xe
                             self.get_piece(0, 0).change_col_number(2)
 
                             self.board[0][2] = self.board[0][0]
@@ -400,7 +400,7 @@ class game_state:
                             move = chess_move(starting_square, ending_square, self, self._is_check)
                             move.castling_move((0, 7), (0, 4), self)
                             self.move_log.append(move)
-                            # move rook
+                            # Di chuyển xe
                             self.get_piece(0, 7).change_col_number(4)
 
                             self.board[0][4] = self.board[0][7]
@@ -421,7 +421,7 @@ class game_state:
                             self.move_log.append(move)
 
                             self.get_piece(7, 0).change_col_number(2)
-                            # move rook
+                            # Di chuyển xe
                             self.board[7][2] = self.board[7][0]
                             self.board[7][0] = Player.EMPTY
 
@@ -435,7 +435,7 @@ class game_state:
 
                             self.get_piece(0, 7).change_col_number(4)
 
-                            # move rook
+                            # Di chuyển xe
                             self.board[7][4] = self.board[7][7]
                             self.board[7][7] = Player.EMPTY
 
@@ -446,7 +446,7 @@ class game_state:
                             self.move_log.append(move)
                             self.black_king_can_castle[0] = False
                         self._black_king_location = (next_square_row, next_square_col)
-                        # self.can_en_passant_bool = False  WHAT IS THIS
+                        # self.can_en_passant_bool = False  CÁI NÀY LÀ GÌ
                 elif moving_piece.get_name() == "r":
                     if moving_piece.is_player(Player.PLAYER_1) and current_square_col == 0:
                         self.white_king_can_castle[1] = False
@@ -458,9 +458,9 @@ class game_state:
                         self.white_king_can_castle[2] = False
                     self.move_log.append(chess_move(starting_square, ending_square, self, self._is_check))
                     self.can_en_passant_bool = False
-                # Add move class here
+                # Thêm class nước đi ở đây
                 elif moving_piece.get_name() == "p":
-                    # Promoting white pawn
+                    # Phong cấp tốt trắng
                     if moving_piece.is_player(Player.PLAYER_1) and next_square_row == 7:
                         # print("promoting white pawn")
                         if is_ai:
@@ -468,7 +468,7 @@ class game_state:
                         else:
                             self.promote_pawn(starting_square, moving_piece, ending_square)
                         temp = False
-                    # Promoting black pawn
+                    # Phong cấp tốt đen
                     elif moving_piece.is_player(Player.PLAYER_2) and next_square_row == 0:
                         # print("promoting black pawn")
                         if is_ai:
@@ -476,8 +476,8 @@ class game_state:
                         else:
                             self.promote_pawn(starting_square, moving_piece, ending_square)
                         temp = False
-                    # Moving pawn forward by two
-                    # Problem with Pawn en passant ai
+                    # Di chuyển tốt lên hai ô
+                    # Vấn đề với tốt và en passant cho AI
                     elif abs(next_square_row - current_square_row) == 2 and current_square_col == next_square_col:
                         # print("move pawn forward")
                         self.move_log.append(chess_move(starting_square, ending_square, self, self._is_check))
@@ -500,7 +500,7 @@ class game_state:
                                                  (next_square_row + 1, next_square_col))
                             self.move_log.append(move)
                             self.board[next_square_row + 1][next_square_col] = Player.EMPTY
-                    # moving forward by one or taking a piece
+                    # Di chuyển lên một ô hoặc ăn quân
                     else:
                         self.move_log.append(chess_move(starting_square, ending_square, self, self._is_check))
                         self.can_en_passant_bool = False
@@ -616,14 +616,14 @@ class game_state:
         return self.white_turn
 
     '''
-    check for immediate check
-    - check 8 directions and 8 knight squares
-    check for pins
-    - whatever blocked from above is a pin
-    
-     - if immediate check, change check value to true
-     - list valid moves to prevent check but not remove pin
-     - if there are no valid moves to prevent check, checkmate
+    kiểm tra chiếu ngay lập tức
+    - kiểm tra 8 hướng và 8 ô theo kiểu di chuyển của mã
+    kiểm tra ghim
+    - bất kỳ quân cờ nào bị chặn bởi quân cờ phía trên là bị ghim
+
+     - nếu bị chiếu ngay lập tức, thay đổi giá trị check thành true
+     - liệt kê các nước đi hợp lệ để tránh chiếu nhưng không loại bỏ ghim
+     - nếu không có nước đi hợp lệ để tránh chiếu, chiếu hết
     '''
 
     def check_for_check(self, king_location, player):
