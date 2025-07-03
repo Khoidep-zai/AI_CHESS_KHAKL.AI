@@ -36,7 +36,7 @@ class ChessInterface:
         """Tải ảnh nền từ file và lưu ảnh gốc."""
         try:
             current_dir = os.path.dirname(os.path.abspath(__file__))
-            image_path = os.path.join(current_dir, "images", "BG.png")
+            image_path = os.path.join(current_dir, "..", "images", "BG.png")
             
             self.original_background_image = Image.open(image_path)
             # Tạo một item ảnh trên canvas với tag "background" để cập nhật sau
