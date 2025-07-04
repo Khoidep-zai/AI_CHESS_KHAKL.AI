@@ -14,7 +14,7 @@ class chess_ai:
     và tìm nước đi tốt nhất cho AI
     """
     
-    def minimax_white(self, game_state, depth, alpha, beta, maximizing_player, player_color):
+    def minimax_white(self, game_state, depth, alpha, beta, maximizing_player, player_color, root_depth=None):
         """
         Thuật toán minimax cho quân trắng (AI)
         
@@ -25,7 +25,10 @@ class chess_ai:
             beta: Giá trị beta cho alpha-beta pruning
             maximizing_player: True nếu đang tối đa hóa điểm số
             player_color: Màu của người chơi hiện tại
+            root_depth: Độ sâu gốc của cây tìm kiếm, mặc định None
         """
+        if root_depth is None:
+            root_depth = depth
         csc = game_state.checkmate_stalemate_checker()
         
         # Kiểm tra các trạng thái kết thúc trò chơi
@@ -56,7 +59,7 @@ class chess_ai:
                 # Thực hiện nước đi
                 game_state.move_piece(move_pair[0], move_pair[1], True)
                 # Đánh giá nước đi này
-                evaluation = self.minimax_white(game_state, depth - 1, alpha, beta, False, "white")
+                evaluation = self.minimax_white(game_state, depth - 1, alpha, beta, False, "white", root_depth)
                 # Hoàn tác nước đi
                 game_state.undo_move()
 
@@ -71,7 +74,7 @@ class chess_ai:
                     break
                     
             # Trả về nước đi tốt nhất ở độ sâu gốc, ngược lại trả về điểm số
-            if depth == 3:
+            if depth == root_depth:
                 return best_possible_move
             else:
                 return max_evaluation
@@ -83,7 +86,7 @@ class chess_ai:
                 # Thực hiện nước đi
                 game_state.move_piece(move_pair[0], move_pair[1], True)
                 # Đánh giá nước đi này
-                evaluation = self.minimax_white(game_state, depth - 1, alpha, beta, True, "black")
+                evaluation = self.minimax_white(game_state, depth - 1, alpha, beta, True, "black", root_depth)
                 # Hoàn tác nước đi
                 game_state.undo_move()
 
@@ -98,16 +101,18 @@ class chess_ai:
                     break
                     
             # Trả về nước đi tốt nhất ở độ sâu gốc, ngược lại trả về điểm số
-            if depth == 3:
+            if depth == root_depth:
                 return best_possible_move
             else:
                 return min_evaluation
 
-    def minimax_black(self, game_state, depth, alpha, beta, maximizing_player, player_color):
+    def minimax_black(self, game_state, depth, alpha, beta, maximizing_player, player_color, root_depth=None):
         """
         Thuật toán minimax cho quân đen (AI)
         Tương tự minimax_white nhưng đánh giá từ góc nhìn của quân đen
         """
+        if root_depth is None:
+            root_depth = depth
         csc = game_state.checkmate_stalemate_checker()
         
         # Kiểm tra các trạng thái kết thúc trò chơi
@@ -138,7 +143,7 @@ class chess_ai:
                 # Thực hiện nước đi
                 game_state.move_piece(move_pair[0], move_pair[1], True)
                 # Đánh giá nước đi này
-                evaluation = self.minimax_black(game_state, depth - 1, alpha, beta, False, "black")
+                evaluation = self.minimax_black(game_state, depth - 1, alpha, beta, False, "black", root_depth)
                 # Hoàn tác nước đi
                 game_state.undo_move()
 
@@ -153,7 +158,7 @@ class chess_ai:
                     break
                     
             # Trả về nước đi tốt nhất ở độ sâu gốc, ngược lại trả về điểm số
-            if depth == 3:
+            if depth == root_depth:
                 return best_possible_move
             else:
                 return max_evaluation
@@ -165,7 +170,7 @@ class chess_ai:
                 # Thực hiện nước đi
                 game_state.move_piece(move_pair[0], move_pair[1], True)
                 # Đánh giá nước đi này
-                evaluation = self.minimax_black(game_state, depth - 1, alpha, beta, True, "white")
+                evaluation = self.minimax_black(game_state, depth - 1, alpha, beta, True, "white", root_depth)
                 # Hoàn tác nước đi
                 game_state.undo_move()
 
@@ -180,7 +185,7 @@ class chess_ai:
                     break
                     
             # Trả về nước đi tốt nhất ở độ sâu gốc, ngược lại trả về điểm số
-            if depth == 3:
+            if depth == root_depth:
                 return best_possible_move
             else:
                 return min_evaluation

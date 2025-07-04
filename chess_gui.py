@@ -117,25 +117,9 @@ def highlight_square(screen, game_state, valid_moves, square_selected):
             for move in valid_moves:
                 screen.blit(s, (move[1] * SQ_SIZE, move[0] * SQ_SIZE))
 
-# Code cũ đã được comment - sử dụng phiên bản mới với màu sắc tốt hơn
-# def highlight_square(screen, game_state, valid_moves, square_selected):
-#     if square_selected != () and game_state.is_valid_piece(square_selected[0], square_selected[1]):
-#         row = square_selected[0]
-#         col = square_selected[1]
-#         if (game_state.whose_turn() and game_state.get_piece(row, col).is_player(Player.PLAYER_1)) or \
-#                 (not game_state.whose_turn() and game_state.get_piece(row, col).is_player(Player.PLAYER_2)):
-#             # hightlight selected square
-#             s = py.Surface((SQ_SIZE, SQ_SIZE))
-#             s.set_alpha(100)
-#             s.fill(py.Color("blue"))
-#             screen.blit(s, (col * SQ_SIZE, row * SQ_SIZE))
-#             # highlight move squares
-#             s.fill(py.Color("green"))
-#             for move in valid_moves:
-#                 screen.blit(s, (move[1] * SQ_SIZE, move[0] * SQ_SIZE))
 
 
-def main(game_mode, player_color=None):
+def main(game_mode, player_color=None, difficulty=None):
     """
     Hàm chính của trò chơi
     Xử lý logic chính và vòng lặp game
@@ -143,13 +127,25 @@ def main(game_mode, player_color=None):
     Args:
         game_mode (str): Chế độ chơi ('ai' hoặc 'solo').
         player_color (str, optional): Màu của người chơi ('white' hoặc 'black'). Mặc định là None.
+        difficulty (str, optional): Độ khó ('easy', 'medium', 'hard').
     """
     # Thiết lập chế độ chơi dựa trên đầu vào từ UI
     number_of_players = 1 if game_mode == 'ai' else 2
     human_player = ''
+    # Chọn depth AI theo độ khó:
+    #   - easy:    depth = 2 (AI yếu, nhanh)
+    #   - medium:  depth = 3 (AI trung bình)
+    #   - hard:    depth = 4 (AI mạnh, chậm hơn)
+    ai_depth = 3  # Mặc định depth=3
     if number_of_players == 1:
         # 'w' cho trắng, 'b' cho đen
         human_player = 'w' if player_color == 'white' else 'b'
+        if difficulty == 'easy':
+            ai_depth = 2  # Dễ AI chỉ nhìn trước 2 lượt, rất dễ thắng, chạy nhanh
+        elif difficulty == 'medium':
+            ai_depth = 3  # Trung bình AI nhìn trước 3 lượt, không dễ thắng, chạy nhanh
+        elif difficulty == 'hard':
+            ai_depth = 4  # Khó AI nhìn trước 4 lượt, không dễ thắng, chạy chậm rất mất thời gian ngốn tài nguyên của máy
 
     # Khởi tạo pygame
     py.init()
@@ -184,7 +180,7 @@ def main(game_mode, player_color=None):
 
     # Nếu người chơi chọn quân đen và chơi với AI, AI đi trước
     if number_of_players == 1 and human_player == 'b':
-        ai_move = ai.minimax_black(game_state, 3, -100000, 100000, True, Player.PLAYER_1)
+        ai_move = ai.minimax_black(game_state, ai_depth, -100000, 100000, True, Player.PLAYER_1, ai_depth)
         game_state.move_piece(ai_move[0], ai_move[1], True)
 
     # Vòng lặp chính của game
@@ -246,7 +242,6 @@ def main(game_mode, player_color=None):
                                     font = py.font.SysFont("Arial", 30, True, False)
                                     thinking_text = font.render("AI is thinking...", True, py.Color("black"))
                                     text_rect = thinking_text.get_rect(center=(BOARD_WIDTH // 2, BOARD_HEIGHT // 2))
-                                    
                                     # Vẽ overlay mờ và thông báo
                                     overlay = py.Surface((BOARD_WIDTH, BOARD_HEIGHT))
                                     overlay.set_alpha(128)
@@ -254,15 +249,13 @@ def main(game_mode, player_color=None):
                                     screen.blit(overlay, (0, 0))
                                     screen.blit(thinking_text, text_rect)
                                     py.display.flip()
-                                    
                                     # Đợi 2 giây để AI "suy nghĩ"
                                     time.sleep(2)
-                                    
                                     if human_player == 'w':
-                                        ai_move = ai.minimax_white(game_state, 3, -100000, 100000, True, Player.PLAYER_2)
+                                        ai_move = ai.minimax_white(game_state, ai_depth, -100000, 100000, True, Player.PLAYER_2, ai_depth)
                                         game_state.move_piece(ai_move[0], ai_move[1], True)
                                     elif human_player == 'b':
-                                        ai_move = ai.minimax_black(game_state, 3, -100000, 100000, True, Player.PLAYER_1)
+                                        ai_move = ai.minimax_black(game_state, ai_depth, -100000, 100000, True, Player.PLAYER_1, ai_depth)
                                         game_state.move_piece(ai_move[0], ai_move[1], True)
                         else:
                             # Lấy danh sách các nước đi hợp lệ cho quân cờ được chọn
@@ -366,74 +359,6 @@ def draw_status_bar(screen, game_state):
     rect = py.Rect(0, WIDTH, WIDTH, STATUS_BAR_HEIGHT)
     py.draw.rect(screen, (200, 200, 200), rect)  # Nền xám nhạt
     screen.blit(text_obj, (10, WIDTH + (STATUS_BAR_HEIGHT - text_obj.get_height()) // 2))
-
-    # Code cũ đã được comment - sử dụng logic mới hiệu quả hơn
-    # elif human_player is 'w':
-    #     ai = ai_engine.chess_ai()
-    #     game_state = chess_engine.game_state()
-    #     valid_moves = []
-    #     while running:
-    #         for e in py.event.get():
-    #             if e.type == py.QUIT:
-    #                 running = False
-    #             elif e.type == py.MOUSEBUTTONDOWN:
-    #                 if not game_over:
-    #                     location = py.mouse.get_pos()
-    #                     col = location[0] // SQ_SIZE
-    #                     row = location[1] // SQ_SIZE
-    #                     if square_selected == (row, col):
-    #                         square_selected = ()
-    #                         player_clicks = []
-    #                     else:
-    #                         square_selected = (row, col)
-    #                         player_clicks.append(square_selected)
-    #                     if len(player_clicks) == 2:
-    #                         if (player_clicks[1][0], player_clicks[1][1]) not in valid_moves:
-    #                             square_selected = ()
-    #                             player_clicks = []
-    #                             valid_moves = []
-    #                         else:
-    #                             game_state.move_piece((player_clicks[0][0], player_clicks[0][1]),
-    #                                                   (player_clicks[1][0], player_clicks[1][1]), False)
-    #                             square_selected = ()
-    #                             player_clicks = []
-    #                             valid_moves = []
-    #
-    #                             ai_move = ai.minimax(game_state, 3, -100000, 100000, True, Player.PLAYER_2)
-    #                             game_state.move_piece(ai_move[0], ai_move[1], True)
-    #                     else:
-    #                         valid_moves = game_state.get_valid_moves((row, col))
-    #                         if valid_moves is None:
-    #                             valid_moves = []
-    #             elif e.type == py.KEYDOWN:
-    #                 if e.key == py.K_r:
-    #                     game_over = False
-    #                     game_state = chess_engine.game_state()
-    #                     valid_moves = []
-    #                     square_selected = ()
-    #                     player_clicks = []
-    #                     valid_moves = []
-    #                 elif e.key == py.K_u:
-    #                     game_state.undo_move()
-    #                     print(len(game_state.move_log))
-    #         draw_game_state(screen, game_state, valid_moves, square_selected)
-    #
-    #         endgame = game_state.checkmate_stalemate_checker()
-    #         if endgame == 0:
-    #             game_over = True
-    #             draw_text(screen, "Black wins.")
-    #         elif endgame == 1:
-    #             game_over = True
-    #             draw_text(screen, "White wins.")
-    #         elif endgame == 2:
-    #             game_over = True
-    #             draw_text(screen, "Stalemate.")
-    #
-    #         clock.tick(MAX_FPS)
-    #         py.display.flip()
-    #
-    # elif human_player is 'b':
-    #     pass
 
 
 def draw_text(screen, text, color=py.Color("black"), background_alpha=None):

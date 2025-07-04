@@ -20,6 +20,7 @@ class ChessInterface:
         self.button_play_with_AI = None
         self.button_exit = None
         self._resize_job = None
+        self.current_screen = 'main_menu'  # Trạng thái màn hình hiện tại
 
         # Tạo Canvas để vẽ giao diện, nó sẽ lấp đầy cửa sổ
         self.canvas = tk.Canvas(self.root, highlightthickness=0)
@@ -52,6 +53,7 @@ class ChessInterface:
             self.canvas.configure(bg="white")
 
     def create_choice_buttons(self):
+        self.current_screen = 'main_menu'  # Đánh dấu đang ở màn hình chính
         """Tạo tiêu đề và các nút bấm ban đầu."""
         # Widget cha là canvas
         parent_widget = self.canvas
@@ -107,41 +109,70 @@ class ChessInterface:
         self._resize_job = self.root.after(50, self.perform_resize)
 
     def perform_resize(self):
-        """Thực hiện việc thay đổi kích thước và vị trí các widget."""
         width = self.canvas.winfo_width()
         height = self.canvas.winfo_height()
-
-        if width < 10 or height < 10: # Bỏ qua nếu cửa sổ quá nhỏ
+        if width < 10 or height < 10:
             return
-
         # 1. Cập nhật ảnh nền
         if self.original_background_image:
-            # Thay đổi kích thước ảnh để vừa với canvas
             resized_image = self.original_background_image.resize((width, height), Image.LANCZOS)
             self.background_photo = ImageTk.PhotoImage(resized_image)
             self.canvas.itemconfig("background", image=self.background_photo)
             self.canvas.coords("background", 0, 0)
-
-        # 2. Cập nhật Tiêu đề (Vị trí và Kích thước Font)
-        # Kích thước font chữ co dãn theo chiều cao cửa sổ, có giới hạn min/max
-        title_font_size = max(20, min(int(height / 15), 60))
-        self.canvas.itemconfig("title", font=("Gill Sans Nova Ultra Bold", title_font_size, "bold"))
-        self.canvas.coords("title", width / 2, height * 0.4)
-
-        # 3. Cập nhật các nút (Vị trí và Kích thước Font)
-        button_font_size = max(8, min(int(height / 40), 16))
-        button_y = height * 0.60  # Vị trí Y của các nút
-        button_spacing = width / 5.5 # Khoảng cách giữa các nút
-
-        button_font = ("Arial", button_font_size, "bold")
-        self.button_solo.config(font=button_font)
-        self.button_play_with_AI.config(font=button_font)
-        self.button_exit.config(font=button_font)
-        
-        center_x = width / 2
-        self.canvas.coords("solo_button", center_x - button_spacing, button_y)
-        self.canvas.coords("ai_button", center_x, button_y)
-        self.canvas.coords("exit_button", center_x + button_spacing, button_y)
+        # 2. Cập nhật giao diện theo màn hình hiện tại
+        if self.current_screen == 'main_menu':
+            # Cập nhật tiêu đề
+            title_font_size = max(20, min(int(height / 15), 60))
+            self.canvas.itemconfig("title", font=("Gill Sans Nova Ultra Bold", title_font_size, "bold"))
+            self.canvas.coords("title", width / 2, height * 0.4)
+            # Cập nhật các nút
+            button_font_size = max(8, min(int(height / 40), 16))
+            button_y = height * 0.60
+            button_spacing = width / 5.5
+            button_font = ("Arial", button_font_size, "bold")
+            self.button_solo.config(font=button_font)
+            self.button_play_with_AI.config(font=button_font)
+            self.button_exit.config(font=button_font)
+            center_x = width / 2
+            self.canvas.coords("solo_button", center_x - button_spacing, button_y)
+            self.canvas.coords("ai_button", center_x, button_y)
+            self.canvas.coords("exit_button", center_x + button_spacing, button_y)
+        elif self.current_screen == 'color_select':
+            # Cập nhật tiêu đề
+            title_font_size = max(20, min(int(height / 15), 60))
+            self.canvas.itemconfig("color_title", font=("Gill Sans Nova Ultra Bold", title_font_size, "bold"))
+            self.canvas.coords("color_title", width / 2, height * 0.3)
+            # Cập nhật các nút
+            button_font_size = max(8, min(int(height / 40), 16))
+            button_font = ("Arial", button_font_size, "bold")
+            self.button_white.config(font=button_font)
+            self.button_black.config(font=button_font)
+            self.button_back.config(font=button_font)
+            center_x = width / 2
+            button_y = height * 0.6
+            button_spacing = width / 6
+            self.canvas.coords("white_button", center_x - button_spacing, button_y)
+            self.canvas.coords("black_button", center_x + button_spacing, button_y)
+            self.canvas.coords("back_button", center_x, button_y + 80)
+        elif self.current_screen == 'difficulty_select':
+            # Cập nhật tiêu đề
+            title_font_size = max(20, min(int(height / 15), 60))
+            self.canvas.itemconfig("difficulty_title", font=("Gill Sans Nova Ultra Bold", title_font_size, "bold"))
+            self.canvas.coords("difficulty_title", width / 2, height * 0.3)
+            # Cập nhật các nút
+            button_font_size = max(8, min(int(height / 40), 16))
+            button_font = ("Arial", button_font_size, "bold")
+            self.button_easy.config(font=button_font)
+            self.button_medium.config(font=button_font)
+            self.button_hard.config(font=button_font)
+            self.button_back2.config(font=button_font)
+            center_x = width / 2
+            button_y = height * 0.6
+            button_spacing = width / 4.5
+            self.canvas.coords("easy_button", center_x - button_spacing, button_y)
+            self.canvas.coords("medium_button", center_x, button_y)
+            self.canvas.coords("hard_button", center_x + button_spacing, button_y)
+            self.canvas.coords("back2_button", center_x, button_y + 80)
 
     def button_clicked_solo(self):
         # Chuyển đến chế độ chơi solo (2 người chơi)
@@ -160,7 +191,9 @@ class ChessInterface:
         self.show_color_selection_screen()
 
     def show_color_selection_screen(self):
-        """Hiển thị màn hình chọn màu quân cờ cho chế độ chơi với AI."""
+        self.current_screen = 'color_select'  # Đánh dấu đang ở màn hình chọn màu
+        self.selected_color = None
+        self.selected_difficulty = None
         # Xóa tất cả các widget hiện tại
         self.canvas.delete("all")
         
@@ -186,7 +219,7 @@ class ChessInterface:
         
         self.button_white = tk.Button(self.root,
                                      text="White",
-                                     command=self.select_white,
+                                     command=lambda: self.select_color_and_show_difficulty("white"),
                                      activebackground="#3399ff", activeforeground="white",
                                      anchor="center", bd=3, bg="#FFFFFF", cursor="hand2",
                                      disabledforeground="gray", fg="black", font=button_font,
@@ -197,7 +230,7 @@ class ChessInterface:
         # Tạo nút "Black" (Đen)
         self.button_black = tk.Button(self.root,
                                      text="Black",
-                                     command=self.select_black,
+                                     command=lambda: self.select_color_and_show_difficulty("black"),
                                      activebackground="#3399ff", activeforeground="white",
                                      anchor="center", bd=3, bg="#000000", cursor="hand2",
                                      disabledforeground="gray", fg="white", font=button_font,
@@ -229,25 +262,140 @@ class ChessInterface:
         self.canvas.create_window(center_x, button_y + 80, 
                                  window=self.button_back, anchor="center", tags="back_button")
 
-    def select_white(self):
-        """Xử lý khi người chơi chọn màu trắng."""
-        print("Người chơi đã chọn màu trắng")
-        # Ở đây bạn có thể thêm logic để khởi động game với AI, người chơi đi trước
-        self.start_ai_game("white")
+    def select_color_and_show_difficulty(self, color):
+        """Lưu màu đã chọn và hiển thị màn hình chọn độ khó."""
+        self.selected_color = color
+        self.show_difficulty_selection_screen()
 
-    def select_black(self):
-        """Xử lý khi người chơi chọn màu đen."""
-        print("Người chơi đã chọn màu đen")
-        # Ở đây bạn có thể thêm logic để khởi động game với AI, AI đi trước
-        self.start_ai_game("black")
+    def show_difficulty_selection_screen(self):
+        self.current_screen = 'difficulty_select'  # Đánh dấu đang ở màn hình chọn độ khó
+        self.canvas.delete("all")
+        # Tải lại ảnh nền
+        if self.original_background_image:
+            width = self.canvas.winfo_width()
+            height = self.canvas.winfo_height()
+            if width > 10 and height > 10:
+                resized_image = self.original_background_image.resize((width, height), Image.LANCZOS)
+                self.background_photo = ImageTk.PhotoImage(resized_image)
+                self.canvas.create_image(0, 0, image=self.background_photo, anchor="nw", tags="background")
+        # Tiêu đề
+        title_font_size = max(20, min(int(self.canvas.winfo_height() / 15), 60))
+        self.canvas.create_text(self.canvas.winfo_width() / 2, self.canvas.winfo_height() * 0.3,
+                               text="Chọn Độ Khó",
+                               font=("Gill Sans Nova Ultra Bold", title_font_size, "bold"),
+                               fill="black", anchor="center", tags="difficulty_title")
+        # Nút Dễ
+        button_font_size = max(8, min(int(self.canvas.winfo_height() / 40), 16))
+        button_font = ("Arial", button_font_size, "bold")
+        self.button_easy = tk.Button(self.root,
+                                     text="Dễ",
+                                     command=lambda: self.select_difficulty_and_start("easy"),
+                                     activebackground="#3399ff", activeforeground="white",
+                                     anchor="center", bd=3, bg="#00FF00", cursor="hand2",
+                                     disabledforeground="gray", fg="black", font=button_font,
+                                     height=2, highlightbackground="black", highlightcolor="green",
+                                     highlightthickness=2, justify="center", overrelief="raised",
+                                     padx=10, pady=5, width=15, wraplength=100)
+        # Nút Trung Bình
+        self.button_medium = tk.Button(self.root,
+                                     text="Trung Bình",
+                                     command=lambda: self.select_difficulty_and_start("medium"),
+                                     activebackground="#3399ff", activeforeground="white",
+                                     anchor="center", bd=3, bg="#FFD700", cursor="hand2",
+                                     disabledforeground="gray", fg="black", font=button_font,
+                                     height=2, highlightbackground="black", highlightcolor="green",
+                                     highlightthickness=2, justify="center", overrelief="raised",
+                                     padx=10, pady=5, width=15, wraplength=100)
+        # Nút Khó
+        self.button_hard = tk.Button(self.root,
+                                     text="Khó",
+                                     command=lambda: self.select_difficulty_and_start("hard"),
+                                     activebackground="#3399ff", activeforeground="white",
+                                     anchor="center", bd=3, bg="#FF9900", cursor="hand2",
+                                     disabledforeground="gray", fg="black", font=button_font,
+                                     height=2, highlightbackground="black", highlightcolor="green",
+                                     highlightthickness=2, justify="center", overrelief="raised",
+                                     padx=10, pady=5, width=15, wraplength=100)
+        center_x = self.canvas.winfo_width() / 2
+        button_y = self.canvas.winfo_height() * 0.6
+        button_spacing = self.canvas.winfo_width() / 4.5
+        # Hiển thị 3 nút độ khó
+        self.canvas.create_window(center_x - button_spacing, button_y,
+                                 window=self.button_easy, anchor="center", tags="easy_button")
+        self.canvas.create_window(center_x, button_y,
+                                 window=self.button_medium, anchor="center", tags="medium_button")
+        self.canvas.create_window(center_x + button_spacing, button_y,
+                                 window=self.button_hard, anchor="center", tags="hard_button")
+        
+        # Nút Quay Lại
+        self.button_back2 = tk.Button(self.root,
+                                    text="Quay Lại",
+                                    command=self.show_color_selection_screen,
+                                    activebackground="#59080A", activeforeground="white",
+                                    anchor="center", bd=3, bg="#E33539", cursor="hand2",
+                                    disabledforeground="gray", fg="black", font=label_font,
+                                    height=2, highlightbackground="black", highlightcolor="green",
+                                    highlightthickness=2, justify="center", overrelief="raised",
+                                    padx=10, pady=5, width=15, wraplength=100)
+        self.canvas.create_window(center_x, button_y + 80,
+                                 window=self.button_back2, anchor="center", tags="back2_button")
 
-    def start_ai_game(self, player_color):
+    def select_difficulty_and_start(self, difficulty):
+        """Hiện popup xác nhận trước khi vào game với độ khó đã chọn."""
+        self.selected_difficulty = difficulty
+        # Nội dung mô tả theo từng độ khó
+        if difficulty == "easy":
+            desc = "Chế độ dễ:\nAI chỉ nhìn trước 2 lượt rất dễ thắng và chạy nhanh."
+        elif difficulty == "medium":
+            desc = "Chế độ trung bình:\nAI nhìn trước 3 lượt độ khó vừa phải."
+        else:
+            desc = "Chế độ khó:\nAI nhìn trước 4 lượt cực kì khó thắng và chạy chậm hơn dễ ngốn ram."
+        self.show_confirm_popup(desc)
+
+    def show_confirm_popup(self, desc):
+        """Hiển thị popup xác nhận với mô tả chế độ, 2 nút OK và Quay lại."""
+        popup = tk.Toplevel(self.root)
+        popup.title("Xác nhận chế độ chơi")
+        popup.geometry("400x220")
+        popup.resizable(False, False)
+        popup.transient(self.root)
+        popup.grab_set()
+        # Nền trắng, viền đẹp
+        popup.configure(bg="#f8f8f8")
+        # Label tiêu đề
+        title = tk.Label(popup, text="Xác nhận chế độ chơi", font=("Gill Sans Nova Ultra Bold", 16, "bold"), fg="#222", bg="#f8f8f8")
+        title.pack(pady=(18, 8))
+        # Label mô tả
+        desc_label = tk.Label(popup, text=desc, font=("Arial", 12), fg="#333", bg="#f8f8f8", justify="center", wraplength=360)
+        desc_label.pack(pady=(0, 18))
+        # Frame cho 2 nút
+        btn_frame = tk.Frame(popup, bg="#f8f8f8")
+        btn_frame.pack(pady=(0, 10))
+        # Nút OK
+        ok_btn = tk.Button(btn_frame, text="OK", font=("Arial", 12, "bold"), bg="#00C853", fg="white",
+                           width=10, height=1, relief="raised", bd=2,
+                           command=lambda: [popup.destroy(), self.start_ai_game(self.selected_color, self.selected_difficulty)])
+        ok_btn.grid(row=0, column=0, padx=18)
+        # Nút Quay lại
+        back_btn = tk.Button(btn_frame, text="Quay lại", font=("Arial", 12, "bold"), bg="#E33539", fg="white",
+                             width=10, height=1, relief="raised", bd=2,
+                             command=popup.destroy)
+        back_btn.grid(row=0, column=1, padx=18)
+        # Căn giữa popup trên màn hình
+        self.root.update_idletasks()
+        x = self.root.winfo_x() + (self.root.winfo_width() // 2) - 200
+        y = self.root.winfo_y() + (self.root.winfo_height() // 2) - 110
+        popup.geometry(f"400x220+{x}+{y}")
+
+    def start_ai_game(self, player_color, difficulty=None):
         """Khởi động game với AI."""
         self.root.destroy()
         try:
-            # Import và chạy chess_gui với tham số chế độ chơi và màu quân cờ
             import chess_gui
-            chess_gui.main(game_mode='ai', player_color=player_color)
+            if difficulty is not None:
+                chess_gui.main(game_mode='ai', player_color=player_color, difficulty=difficulty)
+            else:
+                chess_gui.main(game_mode='ai', player_color=player_color)
         except ImportError:
             print("Không tìm thấy file chess_gui.py")
         except Exception as e:
