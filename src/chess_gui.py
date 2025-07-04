@@ -30,7 +30,7 @@ def load_images():
     """
     # Lấy đường dẫn của thư mục chứa file chess_gui.py
     current_dir = os.path.dirname(os.path.abspath(__file__))
-    images_dir = os.path.join(current_dir, "images")
+    images_dir = os.path.join(current_dir, "..", "images")
     
     for p in Player.PIECES:
         image_path = os.path.join(images_dir, p + ".png")
