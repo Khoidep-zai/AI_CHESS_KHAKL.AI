@@ -333,7 +333,7 @@ class ChessInterface:
                                     command=self.show_color_selection_screen,
                                     activebackground="#59080A", activeforeground="white",
                                     anchor="center", bd=3, bg="#E33539", cursor="hand2",
-                                    disabledforeground="gray", fg="black", font=label_font,
+                                    disabledforeground="gray", fg="black", font=button_font,
                                     height=2, highlightbackground="black", highlightcolor="green",
                                     highlightthickness=2, justify="center", overrelief="raised",
                                     padx=10, pady=5, width=15, wraplength=100)
