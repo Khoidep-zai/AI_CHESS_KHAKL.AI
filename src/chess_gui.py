@@ -65,6 +65,29 @@ def draw_game_state(screen, game_state, valid_moves, square_selected, hint_valid
             s.set_alpha(180)
             s.fill(py.Color(255, 140, 0))  # Cam
             screen.blit(s, (move[1] * SQ_SIZE, move[0] * SQ_SIZE))
+    # Highlight các ô mà nếu bạn đi vào, đối phương có thể ăn lại quân bạn ngay lập tức
+    if square_selected != () and game_state.is_valid_piece(square_selected[0], square_selected[1]) and hint_valid_moves:
+        threatened_next_moves = set()
+        my_piece = game_state.get_piece(square_selected[0], square_selected[1])
+        my_player = my_piece.get_player()
+        opponent_player = Player.PLAYER_2 if my_player == Player.PLAYER_1 else Player.PLAYER_1
+        for move in hint_valid_moves:
+            temp_state = copy.deepcopy(game_state)
+            temp_state.move_piece(square_selected, move, True)
+            # Sau khi đi, kiểm tra đối phương có thể ăn lại quân mình không
+            for r in range(8):
+                for c in range(8):
+                    if temp_state.is_valid_piece(r, c):
+                        piece = temp_state.get_piece(r, c)
+                        if piece is not None and piece != Player.EMPTY and piece.is_player(opponent_player):
+                            opp_moves = temp_state.get_valid_moves((r, c))
+                            if opp_moves and (move[0], move[1]) in opp_moves:
+                                threatened_next_moves.add(move)
+        for sq in threatened_next_moves:
+            s = py.Surface((SQ_SIZE, SQ_SIZE))
+            s.set_alpha(180)
+            s.fill(py.Color(255, 140, 0))  # Cam
+            screen.blit(s, (sq[1] * SQ_SIZE, sq[0] * SQ_SIZE))
     draw_pieces(screen, game_state)  # Vẽ các quân cờ
 
 def draw_squares(screen):
@@ -78,16 +101,6 @@ def draw_squares(screen):
             py.draw.rect(screen, color, rect)
             py.draw.rect(screen, (100, 100, 100), rect, 1)  # Vẽ viền màu xám đậm, dày 1 px
 
-
-# Code cũ đã được comment - sử dụng phiên bản mới với viền
-# def draw_squares(screen):
-#     ''' Draw the chess board with the alternating two colors
-#     :param screen:          -- the pygame screen
-#     '''
-#     for r in range(DIMENSION):
-#         for c in range(DIMENSION):
-#             color = colors[(r + c) % 2]
-#             py.draw.rect(screen, color, py.Rect(c * SQ_SIZE, r * SQ_SIZE, SQ_SIZE, SQ_SIZE))
 
 
 def draw_pieces(screen, game_state):
