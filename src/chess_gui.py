@@ -4,6 +4,7 @@ import os
 import time
 import datetime
 import sys
+import copy
 
 import ai_engine
 from enums import Player
@@ -36,7 +37,7 @@ def load_images():
         image_path = os.path.join(images_dir, p + ".png")
         IMAGES[p] = py.transform.scale(py.image.load(image_path), (SQ_SIZE, SQ_SIZE))
 
-def draw_game_state(screen, game_state, valid_moves, square_selected):
+def draw_game_state(screen, game_state, valid_moves, square_selected, hint_valid_moves=None, best_moves_with_scores=None):
     """
     Vẽ toàn bộ bàn cờ với các quân cờ
     
@@ -45,9 +46,25 @@ def draw_game_state(screen, game_state, valid_moves, square_selected):
         game_state: Trạng thái hiện tại của trò chơi cờ vua
         valid_moves: Danh sách các nước đi hợp lệ
         square_selected: Ô được chọn hiện tại
+        hint_valid_moves: Danh sách các ô hợp lệ để highlight khi nhấn Hint
+        best_moves_with_scores: Danh sách [(move, score)] nước đi tốt nhất và điểm số
     """
     draw_squares(screen)  # Vẽ các ô bàn cờ
     highlight_square(screen, game_state, valid_moves, square_selected)  # Đánh dấu ô được chọn và nước đi hợp lệ
+    # Highlight các ô hợp lệ khi nhấn Hint
+    if hint_valid_moves:
+        for move in hint_valid_moves:
+            s = py.Surface((SQ_SIZE, SQ_SIZE))
+            s.set_alpha(120)
+            s.fill(py.Color(30, 144, 255))  # Xanh dương nhạt
+            screen.blit(s, (move[1] * SQ_SIZE, move[0] * SQ_SIZE))
+    # Highlight các ô nước đi tốt nhất (màu cam)
+    if best_moves_with_scores:
+        for move, score in best_moves_with_scores:
+            s = py.Surface((SQ_SIZE, SQ_SIZE))
+            s.set_alpha(180)
+            s.fill(py.Color(255, 140, 0))  # Cam
+            screen.blit(s, (move[1] * SQ_SIZE, move[0] * SQ_SIZE))
     draw_pieces(screen, game_state)  # Vẽ các quân cờ
 
 def draw_squares(screen):
@@ -183,6 +200,10 @@ def main(game_mode, player_color=None, difficulty=None):
         ai_move = ai.minimax_black(game_state, ai_depth, -100000, 100000, True, Player.PLAYER_1, ai_depth)
         game_state.move_piece(ai_move[0], ai_move[1], True)
 
+    # --- Thêm biến lưu gợi ý ---
+    hint_valid_moves = []  # Danh sách các ô hợp lệ để highlight khi nhấn Hint
+    best_moves_with_scores = []  # Danh sách [(move, score)] nước đi tốt nhất và điểm số
+
     # Vòng lặp chính của game
     while running:
         for e in py.event.get():
@@ -199,7 +220,8 @@ def main(game_mode, player_color=None, difficulty=None):
                     elif thoat_rect and thoat_rect.collidepoint(location):
                         running = False
                         restart_ui = False # Thoát hoàn toàn
-                        
+                    # Không xử lý gì khác khi game_over, tránh bug
+                    
                 elif not game_over:
                     # Kiểm tra xem click có nằm trong vùng bàn cờ không
                     if location[0] < BOARD_WIDTH:
@@ -211,10 +233,14 @@ def main(game_mode, player_color=None, difficulty=None):
                             # Nếu click vào ô đã chọn, bỏ chọn
                             square_selected = ()
                             player_clicks = []
+                            hint_valid_moves = []
+                            best_moves_with_scores = []
                         else:
                             # Chọn ô mới
                             square_selected = (row, col)
                             player_clicks.append(square_selected)
+                            hint_valid_moves = []
+                            best_moves_with_scores = []
                         
                         # Khi đã chọn đủ 2 ô (ô nguồn và ô đích)
                         if len(player_clicks) == 2:
@@ -224,6 +250,8 @@ def main(game_mode, player_color=None, difficulty=None):
                                 square_selected = ()
                                 player_clicks = []
                                 valid_moves = []
+                                hint_valid_moves = []
+                                best_moves_with_scores = []
                             else:
                                 # Thực hiện nước đi
                                 game_state.move_piece((player_clicks[0][0], player_clicks[0][1]),
@@ -231,9 +259,11 @@ def main(game_mode, player_color=None, difficulty=None):
                                 square_selected = ()
                                 player_clicks = []
                                 valid_moves = []
+                                hint_valid_moves = []
+                                best_moves_with_scores = []
 
                                 # Cập nhật màn hình ngay lập tức để hiển thị nước đi của người chơi
-                                draw_game_state(screen, game_state, valid_moves, square_selected)
+                                draw_game_state(screen, game_state, valid_moves, square_selected, hint_valid_moves, best_moves_with_scores)
                                 py.display.flip()
 
                                 # AI thực hiện nước đi của mình nếu là chế độ chơi với máy
@@ -253,9 +283,10 @@ def main(game_mode, player_color=None, difficulty=None):
                                     time.sleep(2)
                                     if human_player == 'w':
                                         ai_move = ai.minimax_white(game_state, ai_depth, -100000, 100000, True, Player.PLAYER_2, ai_depth)
-                                        game_state.move_piece(ai_move[0], ai_move[1], True)
                                     elif human_player == 'b':
                                         ai_move = ai.minimax_black(game_state, ai_depth, -100000, 100000, True, Player.PLAYER_1, ai_depth)
+                                    # Đảm bảo ai_move là tuple
+                                    if isinstance(ai_move, tuple) and len(ai_move) == 2:
                                         game_state.move_piece(ai_move[0], ai_move[1], True)
                         else:
                             # Lấy danh sách các nước đi hợp lệ cho quân cờ được chọn
@@ -268,6 +299,37 @@ def main(game_mode, player_color=None, difficulty=None):
                         if button_rect.collidepoint(location) and not surrendered and not game_over:
                             surrendered = True
                             game_over = True
+                        # Kiểm tra click vào nút Hint (chỉ khi chơi với AI, không game_over)
+                        if number_of_players == 1 and not game_over:
+                            hint_button_rect = py.Rect(BOARD_WIDTH + 30, 220, SIDEBAR_WIDTH - 60, 50)
+                            if hint_button_rect.collidepoint(location):
+                                # Đảm bảo không làm gì với game_over hay restart_ui ở đây
+                                # Chỉ highlight nếu đã chọn quân
+                                if square_selected != () and game_state.is_valid_piece(square_selected[0], square_selected[1]):
+                                    moves = game_state.get_valid_moves(square_selected)
+                                    hint_valid_moves = moves if moves else []
+                                    # Tìm nước đi tốt nhất (cam) nhưng KHÔNG reset bàn cờ, không hiển thị điểm số
+                                    best_moves_with_scores = []
+                                    if moves:
+                                        ai_hint = ai_engine.chess_ai()
+                                        scored_moves = []
+                                        minimax_depth = 2
+                                        for move in moves:
+                                            # Sử dụng deepcopy để không làm thay đổi trạng thái bàn cờ thật
+                                            temp_state = copy.deepcopy(game_state)
+                                            temp_state.move_piece(square_selected, move, True)
+                                            if human_player == 'w':
+                                                score = ai_hint.minimax_white(temp_state, minimax_depth-1, -100000, 100000, False, 'white', minimax_depth)
+                                            else:
+                                                score = ai_hint.minimax_black(temp_state, minimax_depth-1, -100000, 100000, False, 'black', minimax_depth)
+                                            # Không cần undo_move vì temp_state là bản sao
+                                            if isinstance(score, (int, float)):
+                                                scored_moves.append((move, score))
+                                        scored_moves.sort(key=lambda x: x[1], reverse=(human_player=='w'))
+                                        best_moves_with_scores = scored_moves[:2]
+                                else:
+                                    hint_valid_moves = []
+                                    best_moves_with_scores = []
             elif e.type == py.KEYDOWN:
                 if e.key == py.K_r:  # Phím R để reset game
                     game_over = False
@@ -279,19 +341,23 @@ def main(game_mode, player_color=None, difficulty=None):
                     surrendered = False
                     game_start_time = datetime.datetime.now()
                     game_end_time = None
+                    hint_valid_moves = []
+                    best_moves_with_scores = []
                 elif e.key == py.K_u:  # Phím U để undo nước đi
                     game_state.undo_move()
                     print(len(game_state.move_log))
+                    hint_valid_moves = []
+                    best_moves_with_scores = []
                 elif e.key == py.K_s:  # Phím S để đầu hàng
                     if not game_over:
                         surrendered = True
                         game_over = True
 
         # Vẽ trạng thái game
-        draw_game_state(screen, game_state, valid_moves, square_selected)
+        draw_game_state(screen, game_state, valid_moves, square_selected, hint_valid_moves, best_moves_with_scores)
         
         # Vẽ cột bên phải với bảng thời gian và nút đầu hàng
-        draw_sidebar(screen, game_start_time, surrendered, game_over, game_end_time)
+        draw_sidebar(screen, game_start_time, surrendered, game_over, game_end_time, number_of_players)
 
         # Kiểm tra trạng thái kết thúc game và vẽ màn hình kết thúc
         was_game_running = not game_over
@@ -418,7 +484,7 @@ def draw_controls(screen):
         text_object = font.render(text, True, py.Color("black"))
         screen.blit(text_object, (10, y_position + i * 15))
 
-def draw_sidebar(screen, start_time, surrendered, game_over, game_end_time):
+def draw_sidebar(screen, start_time, surrendered, game_over, game_end_time, number_of_players):
     """
     Vẽ cột bên phải với bảng thời gian và nút đầu hàng
     
@@ -479,15 +545,23 @@ def draw_sidebar(screen, start_time, surrendered, game_over, game_end_time):
     surrender_text_rect = surrender_surface.get_rect(center=button_rect.center)
     screen.blit(surrender_surface, surrender_text_rect)
     
-    # Vẽ hướng dẫn phím tắt
+    # Vẽ nút Hint nếu chơi với AI
+    if number_of_players == 1 and not game_over:
+        hint_font = py.font.SysFont("Arial", 20, True, False)
+        hint_button_rect = py.Rect(BOARD_WIDTH + 30, 220, SIDEBAR_WIDTH - 60, 50)
+        py.draw.rect(screen, (50, 205, 50), hint_button_rect)  # Xanh lá cây, không bo góc
+        py.draw.rect(screen, (0, 128, 0), hint_button_rect, 2)  # Viền xanh đậm, không bo góc
+        hint_text = hint_font.render("Hint", True, (255, 255, 255))
+        hint_text_rect = hint_text.get_rect(center=hint_button_rect.center)
+        screen.blit(hint_text, hint_text_rect)
+    # Vẽ hướng dẫn phím tắt, cách xa nút Hint hơn
     controls_font = py.font.SysFont("Arial", 16, True, False)
     controls_text = [
         "Keys:   ",
         "R:   Reset",
         "U:   Undo"
     ]
-    
-    y_start = 250
+    y_start = 290  # Đẩy xuống xa nút Hint hơn
     for i, text in enumerate(controls_text):
         text_surface = controls_font.render(text, True, py.Color("black"))
         screen.blit(text_surface, (BOARD_WIDTH + 20, y_start + i * 20))
