@@ -24,18 +24,24 @@ colors = [(240, 217, 181), (181, 136, 99)]  # Màu gỗ sáng và tối cho bàn
 
 # TODO: AI cho quân đen đã được hoàn thiện. Cần phát triển tương tự cho các chế độ khác
 
+PADDING_LEFT = 28   # Đủ cho số 8-1
+PADDING_BOTTOM = 28 # Đủ cho chữ a-h
+
+# Cập nhật lại TOTAL_WIDTH, TOTAL_HEIGHT
+TOTAL_WIDTH = PADDING_LEFT + BOARD_WIDTH + SIDEBAR_WIDTH
+TOTAL_HEIGHT = BOARD_HEIGHT + PADDING_BOTTOM
+
 def load_images():
     """
     Tải hình ảnh cho tất cả các quân cờ
-    Hình ảnh được scale để vừa với kích thước ô
+    Hình ảnh được scale nhỏ hơn kích thước ô (80%)
     """
-    # Lấy đường dẫn của thư mục chứa file chess_gui.py
     current_dir = os.path.dirname(os.path.abspath(__file__))
     images_dir = os.path.join(current_dir, "..", "images")
-    
+    icon_size = int(SQ_SIZE * 0.8)
     for p in Player.PIECES:
         image_path = os.path.join(images_dir, p + ".png")
-        IMAGES[p] = py.transform.scale(py.image.load(image_path), (SQ_SIZE, SQ_SIZE))
+        IMAGES[p] = py.transform.smoothscale(py.image.load(image_path), (icon_size, icon_size))
 
 def draw_game_state(screen, game_state, valid_moves, square_selected, hint_valid_moves=None, best_moves_with_scores=None):
     """
@@ -49,7 +55,10 @@ def draw_game_state(screen, game_state, valid_moves, square_selected, hint_valid
         hint_valid_moves: Danh sách các ô hợp lệ để highlight khi nhấn Hint
         best_moves_with_scores: Danh sách [(move, score)] nước đi tốt nhất và điểm số
     """
-    draw_squares(screen)  # Vẽ các ô bàn cờ
+    # Fill nền trắng toàn bộ
+    screen.fill((255, 255, 255))
+    draw_squares(screen)
+    draw_labels(screen)
     highlight_square(screen, game_state, valid_moves, square_selected)  # Đánh dấu ô được chọn và nước đi hợp lệ
     # Highlight các ô hợp lệ khi nhấn Hint
     if hint_valid_moves:
@@ -57,14 +66,14 @@ def draw_game_state(screen, game_state, valid_moves, square_selected, hint_valid
             s = py.Surface((SQ_SIZE, SQ_SIZE))
             s.set_alpha(120)
             s.fill(py.Color(30, 144, 255))  # Xanh dương nhạt
-            screen.blit(s, (move[1] * SQ_SIZE, move[0] * SQ_SIZE))
+            screen.blit(s, (PADDING_LEFT + move[1] * SQ_SIZE, move[0] * SQ_SIZE))
     # Highlight các ô nước đi tốt nhất (màu cam)
     if best_moves_with_scores:
         for move, score in best_moves_with_scores:
             s = py.Surface((SQ_SIZE, SQ_SIZE))
             s.set_alpha(180)
             s.fill(py.Color(255, 140, 0))  # Cam
-            screen.blit(s, (move[1] * SQ_SIZE, move[0] * SQ_SIZE))
+            screen.blit(s, (PADDING_LEFT + move[1] * SQ_SIZE, move[0] * SQ_SIZE))
     # Highlight các ô mà nếu bạn đi vào, đối phương có thể ăn lại quân bạn ngay lập tức
     if square_selected != () and game_state.is_valid_piece(square_selected[0], square_selected[1]) and hint_valid_moves:
         threatened_next_moves = set()
@@ -87,17 +96,17 @@ def draw_game_state(screen, game_state, valid_moves, square_selected, hint_valid
             s = py.Surface((SQ_SIZE, SQ_SIZE))
             s.set_alpha(180)
             s.fill(py.Color(255, 140, 0))  # Cam
-            screen.blit(s, (sq[1] * SQ_SIZE, sq[0] * SQ_SIZE))
+            screen.blit(s, (PADDING_LEFT + sq[1] * SQ_SIZE, sq[0] * SQ_SIZE))
     draw_pieces(screen, game_state)  # Vẽ các quân cờ
 
 def draw_squares(screen):
     """
-    Vẽ bàn cờ với các ô xen kẽ hai màu
+    Vẽ bàn cờ với các ô xen kẽ hai màu, có padding trái và dưới
     """
     for r in range(DIMENSION):
         for c in range(DIMENSION):
             color = colors[(r + c) % 2]  # Xen kẽ màu sáng và tối
-            rect = py.Rect(c * SQ_SIZE, r * SQ_SIZE, SQ_SIZE, SQ_SIZE)
+            rect = py.Rect(PADDING_LEFT + c * SQ_SIZE, r * SQ_SIZE, SQ_SIZE, SQ_SIZE)
             py.draw.rect(screen, color, rect)
             py.draw.rect(screen, (100, 100, 100), rect, 1)  # Vẽ viền màu xám đậm, dày 1 px
 
@@ -105,19 +114,16 @@ def draw_squares(screen):
 
 def draw_pieces(screen, game_state):
     """
-    Vẽ các quân cờ lên bàn cờ
-    
-    Args:
-        screen: Màn hình pygame
-        game_state: Trạng thái hiện tại của trò chơi cờ vua
+    Vẽ các quân cờ lên bàn cờ, căn giữa icon trong ô vuông, có padding trái
     """
+    icon_size = int(SQ_SIZE * 0.8)
+    offset = (SQ_SIZE - icon_size) // 2
     for r in range(DIMENSION):
         for c in range(DIMENSION):
             piece = game_state.get_piece(r, c)
             if piece is not None and piece != Player.EMPTY:
-                # Vẽ quân cờ tại vị trí tương ứng
-                screen.blit(IMAGES[piece.get_player() + "_" + piece.get_name()],
-                            py.Rect(c * SQ_SIZE, r * SQ_SIZE, SQ_SIZE, SQ_SIZE))
+                img = IMAGES[piece.get_player() + "_" + piece.get_name()]
+                screen.blit(img, (PADDING_LEFT + c * SQ_SIZE + offset, r * SQ_SIZE + offset))
 
 
 def highlight_square(screen, game_state, valid_moves, square_selected):
@@ -140,12 +146,12 @@ def highlight_square(screen, game_state, valid_moves, square_selected):
             s = py.Surface((SQ_SIZE, SQ_SIZE))
             s.set_alpha(150)  # Tăng độ trong suốt để rõ hơn
             s.fill(py.Color(0, 0, 255))  # Màu xanh dương cho ô được chọn
-            screen.blit(s, (col * SQ_SIZE, row * SQ_SIZE))
+            screen.blit(s, (PADDING_LEFT + col * SQ_SIZE, row * SQ_SIZE))
 
             # Đánh dấu các ô có thể di chuyển bằng màu xanh lá
             s.fill(py.Color(0, 255, 0, 100))  # Màu xanh lá nhạt cho các ô có thể đi
             for move in valid_moves:
-                screen.blit(s, (move[1] * SQ_SIZE, move[0] * SQ_SIZE))
+                screen.blit(s, (PADDING_LEFT + move[1] * SQ_SIZE, move[0] * SQ_SIZE))
 
 
 
@@ -179,7 +185,7 @@ def main(game_mode, player_color=None, difficulty=None):
 
     # Khởi tạo pygame
     py.init()
-    screen = py.display.set_mode((TOTAL_WIDTH, BOARD_HEIGHT))
+    screen = py.display.set_mode((TOTAL_WIDTH, TOTAL_HEIGHT))
     clock = py.time.Clock()
     game_state = chess_engine.game_state()
     load_images()  # Tải hình ảnh quân cờ
@@ -237,8 +243,8 @@ def main(game_mode, player_color=None, difficulty=None):
                     
                 elif not game_over:
                     # Kiểm tra xem click có nằm trong vùng bàn cờ không
-                    if location[0] < BOARD_WIDTH:
-                        col = location[0] // SQ_SIZE   # Chuyển đổi thành tọa độ cột
+                    if PADDING_LEFT <= location[0] < PADDING_LEFT + BOARD_WIDTH and location[1] < BOARD_HEIGHT:
+                        col = (location[0] - PADDING_LEFT) // SQ_SIZE   # Chuyển đổi thành tọa độ cột, đã trừ padding
                         row = location[1] // SQ_SIZE   # Chuyển đổi thành tọa độ hàng
                         
                         # Xử lý click chuột
@@ -452,14 +458,19 @@ def draw_text(screen, text, color=py.Color("black"), background_alpha=None):
     """
     # Vẽ lớp phủ mờ nếu được yêu cầu
     if background_alpha is not None:
-        overlay = py.Surface((BOARD_WIDTH, BOARD_HEIGHT))
+        overlay_width = PADDING_LEFT + BOARD_WIDTH
+        overlay_height = BOARD_HEIGHT + PADDING_BOTTOM
+        overlay = py.Surface((overlay_width, overlay_height))
         overlay.set_alpha(background_alpha)
         overlay.fill((0, 0, 0))  # Lớp phủ màu đen
         screen.blit(overlay, (0, 0))
-        
+    
     font = py.font.SysFont("Arial", 40, True, False)
     text_object = font.render(text, True, color)
-    text_location = text_object.get_rect(center=(BOARD_WIDTH // 2, BOARD_HEIGHT // 2))
+    # Căn giữa text theo toàn bộ vùng bàn cờ (bao gồm padding)
+    center_x = (PADDING_LEFT + BOARD_WIDTH) // 2
+    center_y = (BOARD_HEIGHT + PADDING_BOTTOM) // 2
+    text_location = text_object.get_rect(center=(center_x, center_y))
     screen.blit(text_object, text_location)
 
 def draw_game_time(screen, start_time):
@@ -500,84 +511,67 @@ def draw_controls(screen):
 def draw_sidebar(screen, start_time, surrendered, game_over, game_end_time, number_of_players):
     """
     Vẽ cột bên phải với bảng thời gian và nút đầu hàng
-    
-    Args:
-        screen: Màn hình pygame
-        start_time: Thời điểm bắt đầu game
-        surrendered: Trạng thái đầu hàng
-        game_over: Trạng thái kết thúc game
-        game_end_time: Thời điểm kết thúc game
     """
+    sidebar_left = PADDING_LEFT + BOARD_WIDTH
     # Vẽ nền cột bên phải
-    sidebar_rect = py.Rect(BOARD_WIDTH, 0, SIDEBAR_WIDTH, BOARD_HEIGHT)
+    sidebar_rect = py.Rect(sidebar_left, 0, SIDEBAR_WIDTH, BOARD_HEIGHT)
     py.draw.rect(screen, (240, 240, 240), sidebar_rect)  # Màu xám nhạt
     py.draw.rect(screen, (100, 100, 100), sidebar_rect, 2)  # Viền
-    
     # Vẽ tiêu đề "Bảng Thời Gian"
     title_font = py.font.SysFont("Arial", 22, True, False)
     title_text = title_font.render("TIMER", True, py.Color("black"))
-    title_rect = title_text.get_rect(center=(BOARD_WIDTH + SIDEBAR_WIDTH // 2, 30))
+    title_rect = title_text.get_rect(center=(sidebar_left + SIDEBAR_WIDTH // 2, 30))
     screen.blit(title_text, title_rect)
-    
     # Tính và hiển thị thời gian
     end_time = game_end_time if game_end_time else datetime.datetime.now()
     elapsed_time = end_time - start_time
     minutes = int(elapsed_time.total_seconds() // 60)
     seconds = int(elapsed_time.total_seconds() % 60)
-    
     time_font = py.font.SysFont("Arial", 30, True, False)
     time_text = f"{minutes:02d}:{seconds:02d}"
     time_surface = time_font.render(time_text, True, py.Color("black"))
-    time_rect = time_surface.get_rect(center=(BOARD_WIDTH + SIDEBAR_WIDTH // 2, 80))
-    
+    time_rect = time_surface.get_rect(center=(sidebar_left + SIDEBAR_WIDTH // 2, 80))
     # Vẽ khung thời gian
-    time_box_rect = py.Rect(BOARD_WIDTH + 20, 60, SIDEBAR_WIDTH - 40, 40)
+    time_box_rect = py.Rect(sidebar_left + 20, 60, SIDEBAR_WIDTH - 40, 40)
     py.draw.rect(screen, (255, 255, 255), time_box_rect)  # Nền trắng
     py.draw.rect(screen, (0, 0, 0), time_box_rect, 2)  # Viền đen
     screen.blit(time_surface, time_rect)
-    
     # Vẽ nút đầu hàng
     surrender_font = py.font.SysFont("Arial", 20, True, False)
     if surrendered or game_over:
-        # Nút bị vô hiệu hóa
         button_color = (150, 150, 150)
         text_color = (100, 100, 100)
-        button_text = "Dau Hang"
+        button_text = "Loser"
     else:
-        # Nút hoạt động
         button_color = (220, 50, 50)
         text_color = (255, 255, 255)
-        button_text = "Dau Hang"
-    
-    # Vẽ nút đầu hàng
-    button_rect = py.Rect(BOARD_WIDTH + 30, 150, SIDEBAR_WIDTH - 60, 50)
+        button_text = "Loser"
+    button_rect = py.Rect(sidebar_left + 30, 150, SIDEBAR_WIDTH - 60, 50)
     py.draw.rect(screen, button_color, button_rect)
     py.draw.rect(screen, (0, 0, 0), button_rect, 2)
-    
     surrender_surface = surrender_font.render(button_text, True, text_color)
     surrender_text_rect = surrender_surface.get_rect(center=button_rect.center)
     screen.blit(surrender_surface, surrender_text_rect)
-    
     # Vẽ nút Hint nếu chơi với AI
     if number_of_players == 1 and not game_over:
         hint_font = py.font.SysFont("Arial", 20, True, False)
-        hint_button_rect = py.Rect(BOARD_WIDTH + 30, 220, SIDEBAR_WIDTH - 60, 50)
-        py.draw.rect(screen, (50, 205, 50), hint_button_rect)  # Xanh lá cây, không bo góc
-        py.draw.rect(screen, (0, 128, 0), hint_button_rect, 2)  # Viền xanh đậm, không bo góc
+        hint_button_rect = py.Rect(sidebar_left + 30, 220, SIDEBAR_WIDTH - 60, 50)
+        py.draw.rect(screen, (50, 205, 50), hint_button_rect)
+        py.draw.rect(screen, (0, 128, 0), hint_button_rect, 2)
         hint_text = hint_font.render("Hint", True, (255, 255, 255))
         hint_text_rect = hint_text.get_rect(center=hint_button_rect.center)
         screen.blit(hint_text, hint_text_rect)
-    # Vẽ hướng dẫn phím tắt, cách xa nút Hint hơn
+    # Vẽ hướng dẫn phím tắt
     controls_font = py.font.SysFont("Arial", 16, True, False)
     controls_text = [
         "Keys:   ",
         "R:   Reset",
         "U:   Undo"
     ]
-    y_start = 290  # Đẩy xuống xa nút Hint hơn
+    y_start = 290
     for i, text in enumerate(controls_text):
         text_surface = controls_font.render(text, True, py.Color("black"))
-        screen.blit(text_surface, (BOARD_WIDTH + 20, y_start + i * 20))
+        screen.blit(text_surface, (sidebar_left + 20, y_start + i * 20))
 
 def draw_end_game_buttons(screen):
     """
@@ -607,6 +601,24 @@ def draw_end_game_buttons(screen):
     screen.blit(thoat_text, thoat_text_rect)
 
     return tro_lai_rect, thoat_rect
+
+def draw_labels(screen):
+    """
+    Vẽ số (1-8) bên trái và chữ (a-h) bên dưới bàn cờ, có padding
+    """
+    font = py.font.SysFont("Arial", 18, True, False)
+    # Vẽ số 8-1 bên trái từng hàng
+    for r in range(DIMENSION):
+        label = str(DIMENSION - r)
+        text = font.render(label, True, py.Color("black"))
+        y = r * SQ_SIZE + SQ_SIZE // 2 - text.get_height() // 2
+        screen.blit(text, (PADDING_LEFT // 2 - text.get_width() // 2, y))
+    # Vẽ chữ a-h bên dưới từng cột
+    for c in range(DIMENSION):
+        label = chr(ord('a') + c)
+        text = font.render(label, True, py.Color("black"))
+        x = PADDING_LEFT + c * SQ_SIZE + SQ_SIZE // 2 - text.get_width() // 2
+        screen.blit(text, (x, BOARD_HEIGHT + (PADDING_BOTTOM // 2 - text.get_height() // 2)))
 
 if __name__ == "__main__":
     # Giao diện chính của game được chạy từ chess_UX_UI.py
