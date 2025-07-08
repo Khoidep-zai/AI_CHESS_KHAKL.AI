@@ -26,6 +26,7 @@ colors = [(240, 217, 181), (181, 136, 99)]  # Màu gỗ sáng và tối cho bàn
 
 PADDING_LEFT = 28   # Đủ cho số 8-1
 PADDING_BOTTOM = 28 # Đủ cho chữ a-h
+# Xóa PADDING_TOP
 
 # Cập nhật lại TOTAL_WIDTH, TOTAL_HEIGHT
 TOTAL_WIDTH = PADDING_LEFT + BOARD_WIDTH + SIDEBAR_WIDTH
@@ -224,12 +225,37 @@ def main(game_mode, player_color=None, difficulty=None):
     best_moves_with_scores = []  # Danh sách [(move, score)] nước đi tốt nhất và điểm số
 
     # Vòng lặp chính của game
+    promotion_pending = None  # Lưu trạng thái phong cấp nếu cần
+    move_times = []  # Lưu thời gian từng nước đi
+    move_time_start = datetime.datetime.now()
+    scroll_offset = 0
     while running:
         for e in py.event.get():
             if e.type == py.QUIT:
                 running = False
             elif e.type == py.MOUSEBUTTONDOWN:
                 location = py.mouse.get_pos()
+                # Ưu tiên xử lý popup phong cấp trước
+                if promotion_pending:
+                    popup_w, popup_h = 340, 120
+                    popup_x = (PADDING_LEFT + BOARD_WIDTH) // 2 - popup_w // 2
+                    popup_y = BOARD_HEIGHT // 2 - popup_h // 2
+                    btn_size = 70
+                    btn_gap = 10
+                    btns = []
+                    for i, piece in enumerate(['q', 'r', 'n', 'b']):
+                        btn_rect = py.Rect(popup_x + 20 + i * (btn_size + btn_gap), popup_y + 25, btn_size, btn_size)
+                        btns.append((btn_rect, piece))
+                    for btn_rect, piece in btns:
+                        if btn_rect.collidepoint(location):
+                            from_sq = promotion_pending['from']
+                            to_sq = promotion_pending['to']
+                            color = promotion_pending['color']
+                            moved_piece = game_state.get_piece(from_sq[0], from_sq[1])
+                            game_state.promote_pawn_gui(from_sq, moved_piece, to_sq, piece)
+                            promotion_pending = None
+                            break
+                    continue  # Không xử lý gì thêm khi đang chọn phong cấp
                 
                 if game_over:
                     # Xử lý click cho các nút khi game kết thúc
@@ -273,8 +299,17 @@ def main(game_mode, player_color=None, difficulty=None):
                                 best_moves_with_scores = []
                             else:
                                 # Thực hiện nước đi
-                                game_state.move_piece((player_clicks[0][0], player_clicks[0][1]),
+                                move_result = game_state.move_piece((player_clicks[0][0], player_clicks[0][1]),
                                                       (player_clicks[1][0], player_clicks[1][1]), False)
+                                # Lưu tổng thời gian đã trôi qua kể từ lúc bắt đầu ván cho mỗi nước đi
+                                move_time_end = datetime.datetime.now()
+                                move_times.append(int((move_time_end - game_start_time).total_seconds()))
+                                move_time_start = move_time_end
+                                if isinstance(move_result, dict) and move_result.get('promotion'):
+                                    # Đang chờ chọn quân phong cấp
+                                    promotion_pending = move_result
+                                else:
+                                    promotion_pending = None
                                 square_selected = ()
                                 player_clicks = []
                                 valid_moves = []
@@ -288,15 +323,19 @@ def main(game_mode, player_color=None, difficulty=None):
                                 # AI thực hiện nước đi của mình nếu là chế độ chơi với máy
                                 if number_of_players == 1:
                                     # Hiển thị thông báo AI đang suy nghĩ
-                                    font = py.font.SysFont("Arial", 30, True, False)
-                                    thinking_text = font.render("AI is thinking...", True, py.Color("black"))
-                                    text_rect = thinking_text.get_rect(center=(BOARD_WIDTH // 2, BOARD_HEIGHT // 2))
-                                    # Vẽ overlay mờ và thông báo
-                                    overlay = py.Surface((BOARD_WIDTH, BOARD_HEIGHT))
-                                    overlay.set_alpha(128)
-                                    overlay.fill((255, 255, 255))
+                                    overlay = py.Surface((PADDING_LEFT + BOARD_WIDTH, BOARD_HEIGHT + PADDING_BOTTOM), py.SRCALPHA)
+                                    overlay.fill((255, 255, 255, 128))  # Màu trắng mờ với alpha 128
                                     screen.blit(overlay, (0, 0))
-                                    screen.blit(thinking_text, text_rect)
+                                    font = py.font.SysFont("Arial", 40, True, False)
+                                    text_object = font.render("AI is thinking...", True, py.Color("black"))
+                                    center_x = (PADDING_LEFT + BOARD_WIDTH) // 2
+                                    center_y = (BOARD_HEIGHT + PADDING_BOTTOM) // 2
+                                    text_location = text_object.get_rect(center=(center_x, center_y))
+                                    screen.blit(text_object, text_location)
+                                    # Vẽ lại sidebar để không bị overlay che mất
+                                    draw_sidebar(screen, game_start_time, surrendered, game_over, game_end_time, number_of_players)
+                                    # VẼ LẠI MOVE HISTORY ĐỂ KHÔNG BỊ CHE MẤT
+                                    draw_move_history(screen, game_state.move_log, number_of_players == 1, move_times, scroll_offset, game_over)
                                     py.display.flip()
                                     # Đợi 2 giây để AI "suy nghĩ"
                                     time.sleep(2)
@@ -307,6 +346,10 @@ def main(game_mode, player_color=None, difficulty=None):
                                     # Đảm bảo ai_move là tuple
                                     if isinstance(ai_move, tuple) and len(ai_move) == 2:
                                         game_state.move_piece(ai_move[0], ai_move[1], True)
+                                    # Lưu tổng thời gian đã trôi qua kể từ lúc bắt đầu ván cho mỗi nước đi của AI
+                                    move_time_end = datetime.datetime.now()
+                                    move_times.append(int((move_time_end - game_start_time).total_seconds()))
+                                    move_time_start = move_time_end
                         else:
                             # Lấy danh sách các nước đi hợp lệ cho quân cờ được chọn
                             valid_moves = game_state.get_valid_moves((row, col))
@@ -362,47 +405,101 @@ def main(game_mode, player_color=None, difficulty=None):
                     game_end_time = None
                     hint_valid_moves = []
                     best_moves_with_scores = []
+                    move_times = []
+                    move_time_start = datetime.datetime.now()
+                    scroll_offset = 0
                 elif e.key == py.K_u:  # Phím U để undo nước đi
                     game_state.undo_move()
                     print(len(game_state.move_log))
                     hint_valid_moves = []
                     best_moves_with_scores = []
+                    move_times = []
+                    move_time_start = datetime.datetime.now()
+                    scroll_offset = 0
                 elif e.key == py.K_s:  # Phím S để đầu hàng
                     if not game_over:
                         surrendered = True
                         game_over = True
 
+            elif e.type == py.MOUSEWHEEL:
+                # Scroll move history bằng chuột
+                if e.y > 0:  # Lăn lên
+                    scroll_offset = max(0, scroll_offset - 1)
+                elif e.y < 0:  # Lăn xuống
+                    scroll_offset = min(scroll_offset + 1, max(0, len(game_state.move_log)-1))
+
         # Vẽ trạng thái game
         draw_game_state(screen, game_state, valid_moves, square_selected, hint_valid_moves, best_moves_with_scores)
-        
+        # Nếu đang chờ chọn quân phong cấp, vẽ popup
+        if promotion_pending:
+            popup_w, popup_h = 340, 120
+            popup_x = (PADDING_LEFT + BOARD_WIDTH) // 2 - popup_w // 2
+            popup_y = BOARD_HEIGHT // 2 - popup_h // 2
+            # Nền popup: màu đen mờ
+            s = py.Surface((popup_w, popup_h), py.SRCALPHA)
+            s.fill((0, 0, 0, 180))
+            screen.blit(s, (popup_x, popup_y))
+            btn_size = 70
+            btn_gap = 10
+            color = promotion_pending['color']
+            piece_names = ['q', 'r', 'n', 'b']
+            for i, piece in enumerate(piece_names):
+                btn_rect = py.Rect(popup_x + 20 + i * (btn_size + btn_gap), popup_y + 25, btn_size, btn_size)
+                # Đặt màu nền xen kẽ như bàn cờ
+                btn_color = colors[i % 2]
+                py.draw.rect(screen, btn_color, btn_rect)
+                img_key = f"{color}_{piece}"
+                img = IMAGES[img_key]
+                screen.blit(py.transform.smoothscale(img, (btn_size, btn_size)), btn_rect.topleft)
+                py.draw.rect(screen, (200, 200, 200), btn_rect, 2)
+
         # Vẽ cột bên phải với bảng thời gian và nút đầu hàng
         draw_sidebar(screen, game_start_time, surrendered, game_over, game_end_time, number_of_players)
 
+        # Vẽ move history
+        draw_move_history(screen, game_state.move_log, number_of_players == 1, move_times, scroll_offset, game_over)
+
         # Kiểm tra trạng thái kết thúc game và vẽ màn hình kết thúc
         was_game_running = not game_over
-        
+        # Xác định loại kết thúc game
+        endgame = game_state.checkmate_stalemate_checker()
+        popup_type = None
+        popup_winner = None
         if surrendered:
             game_over = True
-            draw_text(screen, "Ban da thua AI!", color=py.Color("white"), background_alpha=128)
-        else:
-            endgame = game_state.checkmate_stalemate_checker()
-            if endgame == 0:  # Quân đen thắng
-                game_over = True
-                draw_text(screen, "Quân đen thắng.")
-            elif endgame == 1:  # Quân trắng thắng
-                game_over = True
-                draw_text(screen, "Quân trắng thắng.")
-            elif endgame == 2:  # Hòa (stalemate)
-                game_over = True
-                draw_text(screen, "Hòa (Stalemate).")
-
+            if number_of_players == 1:
+                popup_type = "AI_win"
+            else:
+                popup_type = "surrender"
+        elif endgame == 0:  # Quân đen thắng
+            game_over = True
+            if number_of_players == 1:
+                if human_player == 'w':
+                    popup_type = "AI_win"
+                else:
+                    popup_type = "AI_lose"
+            else:
+                popup_type = "checkmate"
+                popup_winner = "Black"
+        elif endgame == 1:  # Quân trắng thắng
+            game_over = True
+            if number_of_players == 1:
+                if human_player == 'b':
+                    popup_type = "AI_win"
+                else:
+                    popup_type = "AI_lose"
+            else:
+                popup_type = "checkmate"
+                popup_winner = "White"
+        elif endgame == 2:  # Hòa (stalemate)
+            game_over = True
+            popup_type = "stalemate"
         # Nếu game vừa mới kết thúc, ghi lại thời gian
         if game_over and was_game_running:
             game_end_time = datetime.datetime.now()
-        
-        # Nếu game đã kết thúc, vẽ các nút lựa chọn
-        if game_over:
-            tro_lai_rect, thoat_rect = draw_end_game_buttons(screen)
+        # Nếu game đã kết thúc, vẽ popup chuyên nghiệp
+        if game_over and popup_type:
+            tro_lai_rect, thoat_rect = draw_endgame_popup(screen, popup_type, popup_winner)
             
         clock.tick(MAX_FPS)  # Giới hạn FPS
         py.display.flip()    # Cập nhật màn hình
@@ -514,7 +611,7 @@ def draw_sidebar(screen, start_time, surrendered, game_over, game_end_time, numb
     """
     sidebar_left = PADDING_LEFT + BOARD_WIDTH
     # Vẽ nền cột bên phải
-    sidebar_rect = py.Rect(sidebar_left, 0, SIDEBAR_WIDTH, BOARD_HEIGHT)
+    sidebar_rect = py.Rect(sidebar_left, 0, SIDEBAR_WIDTH, BOARD_HEIGHT + PADDING_BOTTOM)
     py.draw.rect(screen, (240, 240, 240), sidebar_rect)  # Màu xám nhạt
     py.draw.rect(screen, (100, 100, 100), sidebar_rect, 2)  # Viền
     # Vẽ tiêu đề "Bảng Thời Gian"
@@ -582,7 +679,7 @@ def draw_end_game_buttons(screen):
     button_width = 150
     button_height = 50
     spacing = 30
-    center_x = BOARD_WIDTH // 2
+    center_x = (PADDING_LEFT + BOARD_WIDTH) // 2
 
     # Nút Trở Lại
     tro_lai_rect = py.Rect(center_x - button_width - spacing // 2, button_y, button_width, button_height)
@@ -619,6 +716,142 @@ def draw_labels(screen):
         text = font.render(label, True, py.Color("black"))
         x = PADDING_LEFT + c * SQ_SIZE + SQ_SIZE // 2 - text.get_width() // 2
         screen.blit(text, (x, BOARD_HEIGHT + (PADDING_BOTTOM // 2 - text.get_height() // 2)))
+
+def draw_move_history(screen, move_log, ai_mode, move_times, scroll_offset, game_over):
+    # Vẽ khung textbox
+    sidebar_left = PADDING_LEFT + BOARD_WIDTH
+    box_x = sidebar_left + 20
+    box_y = 380  # Dưới các phím tắt
+    box_w = SIDEBAR_WIDTH - 40
+    box_h = 160  # Kích thước nhỏ lại như ban đầu
+    box_rect = py.Rect(box_x, box_y, box_w, box_h)
+    py.draw.rect(screen, (255, 255, 255), box_rect)
+    py.draw.rect(screen, (0, 0, 0), box_rect, 2)
+    font2 = py.font.SysFont("Arial", 14, True, False)  # In đậm
+    font_center = py.font.SysFont("Arial", 16, True, False)
+    line_h = 20
+    max_lines = (box_h - 10) // line_h
+    piece_full = {'P': 'Pawn', 'N': 'Knight', 'B': 'Bishop', 'R': 'Rook', 'Q': 'Queen', 'K': 'King'}
+    lines = []
+    # Thêm label Start căn giữa
+    lines.append({'text': 'Start', 'center': True})
+    for idx, move in enumerate(move_log):
+        color = "white" if idx % 2 == 0 else "black"
+        piece = move.get_moving_piece().get_name().upper()
+        piece_name = piece_full.get(piece, piece)
+        start = chr(ord('a') + move.starting_square_col) + str(8 - move.starting_square_row)
+        end = chr(ord('a') + move.ending_square_col) + str(8 - move.ending_square_row)
+        move_str = f"{idx+1}. {color} ({piece_name}) : {start} => {end}"
+        # Hiển thị thời gian theo định dạng XmYs (kể cả khi dưới phút(m) và giấy(s))
+        if idx < len(move_times):
+            t = move_times[idx]
+            m = t // 60
+            s = t % 60
+            move_str += f"  {m}m{s}s"
+        # Nếu có ăn quân, hiển thị theo định dạng Attacker(Captured) cách 5 dấu cách
+        captured_piece = move.get_captured_piece() if hasattr(move, 'get_captured_piece') else None
+        if captured_piece is not None and captured_piece != None and hasattr(captured_piece, 'get_name') and captured_piece.get_name().upper() != '':
+            captured_name = piece_full.get(captured_piece.get_name().upper(), captured_piece.get_name().capitalize())
+            move_str += '     "' + piece_name + '(' + captured_name + ')"'  # 5 dấu cách
+        if ai_mode and ((color == 'white' and idx % 2 == 1) or (color == 'black' and idx % 2 == 0)):
+            move_str += " (AI)"
+        # Tự động xuống dòng nếu quá dài
+        words = move_str.split(' ')
+        wrapped = []
+        current = ''
+        for word in words:
+            test = (current + ' ' + word).strip()
+            if font2.size(test)[0] > box_w - 10 and current:
+                wrapped.append({'text': current, 'center': False})
+                current = word
+            else:
+                current = test
+        if current:
+            wrapped.append({'text': current, 'center': False})
+        lines.extend(wrapped)
+    # Thêm label End căn giữa nếu game_over
+    if game_over:
+        lines.append({'text': 'End', 'center': True})
+    # Scroll
+    visible_lines = lines[max(0, len(lines)-max_lines-scroll_offset):len(lines)-scroll_offset]
+    for i, line in enumerate(visible_lines):
+        if line['center']:
+            text = font_center.render(line['text'], True, py.Color("black"))
+            text_rect = text.get_rect(center=(box_x + box_w // 2, box_y + 5 + i * line_h + line_h//2))
+            screen.blit(text, text_rect)
+        else:
+            text = font2.render(line['text'], True, py.Color("black"))
+            screen.blit(text, (box_x + 5, box_y + 5 + i * line_h))
+
+def draw_endgame_popup(screen, result_type, winner=None):
+    # Nền mờ toàn màn hình
+    overlay = py.Surface((PADDING_LEFT + BOARD_WIDTH + SIDEBAR_WIDTH, BOARD_HEIGHT + PADDING_BOTTOM), py.SRCALPHA)
+    overlay.fill((0, 0, 0, 120))
+    screen.blit(overlay, (0, 0))
+    # Popup trắng mờ (glassmorphism)
+    popup_w, popup_h = 420, 260
+    popup_x = ((PADDING_LEFT + BOARD_WIDTH + SIDEBAR_WIDTH) - popup_w) // 2 - 60  # Dời sang trái 60px
+    popup_y = (BOARD_HEIGHT + PADDING_BOTTOM - popup_h) // 2
+    popup_rect = py.Rect(popup_x, popup_y, popup_w, popup_h)
+    # Glass effect: semi-transparent white
+    popup_surface = py.Surface((popup_w, popup_h), py.SRCALPHA)
+    popup_surface.fill((255, 255, 255, 100))  # Alpha 180 cho hiệu ứng mờ
+    py.draw.rect(popup_surface, (255,255,255,180), popup_surface.get_rect(), border_radius=18)
+    screen.blit(popup_surface, (popup_x, popup_y))
+    # Glass effect: semi-transparent black
+    popup_surface = py.Surface((popup_w, popup_h), py.SRCALPHA)
+    popup_surface.fill((0, 0, 0, 100))  # Alpha 120 cho hiệu ứng mờ đen nhẹ hơn
+    py.draw.rect(popup_surface, (0,0,0,120), popup_surface.get_rect(), border_radius=18)
+    screen.blit(popup_surface, (popup_x, popup_y))
+    py.draw.rect(screen, (60, 60, 60), popup_rect, 3, border_radius=18)
+    # Nội dung
+    title_font = py.font.SysFont("Arial", 38, True, False)
+    sub_font = py.font.SysFont("Arial", 28, True, False)
+    # Dòng trên
+    if result_type == "checkmate":
+        title = "Checkmate!"
+        sub = f"{winner} win"
+    elif result_type == "stalemate":
+        title = "Stalemate"
+        sub = "Draw"
+    elif result_type == "lose":
+        title = "You lose"
+        sub = ""
+    elif result_type == "ai_win":
+        title = "Loser"
+        sub = ""
+    elif result_type == "ai_lose":
+        title = "You are invincible  :>"
+        sub = ""
+    elif result_type == "surrender":
+        title = "You surrendered"
+        sub = ""
+    else:
+        title = "Game Over"
+        sub = ""
+    # Vẽ text
+    title_surf = title_font.render(title, True, (30, 30, 30))
+    title_rect = title_surf.get_rect(center=(popup_x + popup_w//2, popup_y + 60))
+    screen.blit(title_surf, title_rect)
+    if sub:
+        sub_surf = sub_font.render(sub, True, (80, 80, 80))
+        sub_rect = sub_surf.get_rect(center=(popup_x + popup_w//2, popup_y + 110))
+        screen.blit(sub_surf, sub_rect)
+    # Nút
+    btn_font = py.font.SysFont("Arial", 22, True, False)
+    btn_w, btn_h = 140, 48
+    spacing = 30
+    btn1_rect = py.Rect(popup_x + popup_w//2 - btn_w - spacing//2, popup_y + popup_h - 70, btn_w, btn_h)
+    btn2_rect = py.Rect(popup_x + popup_w//2 + spacing//2, popup_y + popup_h - 70, btn_w, btn_h)
+    py.draw.rect(screen, (0, 150, 50), btn1_rect, border_radius=10)
+    py.draw.rect(screen, (255,255,255), btn1_rect, 2, border_radius=10)
+    py.draw.rect(screen, (200, 50, 50), btn2_rect, border_radius=10)
+    py.draw.rect(screen, (255,255,255), btn2_rect, 2, border_radius=10)
+    btn1_text = btn_font.render("Tro Lai", True, (255,255,255))
+    btn2_text = btn_font.render("Thoat", True, (255,255,255))
+    screen.blit(btn1_text, btn1_text.get_rect(center=btn1_rect.center))
+    screen.blit(btn2_text, btn2_text.get_rect(center=btn2_rect.center))
+    return btn1_rect, btn2_rect
 
 if __name__ == "__main__":
     # Giao diện chính của game được chạy từ chess_UX_UI.py

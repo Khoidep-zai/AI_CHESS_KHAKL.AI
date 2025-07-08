@@ -337,6 +337,19 @@ class game_state:
         move.pawn_promotion_move(new_piece)
         self.move_log.append(move)
 
+    def promote_pawn_gui(self, starting_square, moved_piece, ending_square, new_piece_name):
+        """Phong cấp tốt dựa trên lựa chọn từ GUI (new_piece_name: 'q', 'r', 'n', 'b')"""
+        piece_classes = {"r": Rook, "n": Knight, "b": Bishop, "q": Queen}
+        if new_piece_name in piece_classes:
+            move = chess_move(starting_square, ending_square, self, self._is_check)
+            new_piece = piece_classes[new_piece_name](new_piece_name, ending_square[0], ending_square[1], moved_piece.get_player())
+            self.board[ending_square[0]][ending_square[1]] = new_piece
+            self.board[moved_piece.get_row_number()][moved_piece.get_col_number()] = Player.EMPTY
+            moved_piece.change_row_number(ending_square[0])
+            moved_piece.change_col_number(ending_square[1])
+            move.pawn_promotion_move(new_piece)
+            self.move_log.append(move)
+
     # have to fix en passant for ai
     def can_en_passant(self, current_square_row, current_square_col):
         return False
@@ -462,19 +475,31 @@ class game_state:
                 elif moving_piece.get_name() == "p":
                     # Phong cấp tốt trắng
                     if moving_piece.is_player(Player.PLAYER_1) and next_square_row == 7:
-                        # print("promoting white pawn")
                         if is_ai:
                             self.promote_pawn_ai(starting_square, moving_piece, ending_square)
                         else:
-                            self.promote_pawn(starting_square, moving_piece, ending_square)
+                            # Trả về yêu cầu chọn quân phong cấp cho GUI
+                            return {
+                                'promotion': True,
+                                'color': 'white',
+                                'from': starting_square,
+                                'to': ending_square,
+                                'player': Player.PLAYER_1
+                            }
                         temp = False
                     # Phong cấp tốt đen
                     elif moving_piece.is_player(Player.PLAYER_2) and next_square_row == 0:
-                        # print("promoting black pawn")
                         if is_ai:
                             self.promote_pawn_ai(starting_square, moving_piece, ending_square)
                         else:
-                            self.promote_pawn(starting_square, moving_piece, ending_square)
+                            # Trả về yêu cầu chọn quân phong cấp cho GUI
+                            return {
+                                'promotion': True,
+                                'color': 'black',
+                                'from': starting_square,
+                                'to': ending_square,
+                                'player': Player.PLAYER_2
+                            }
                         temp = False
                     # Di chuyển tốt lên hai ô
                     # Vấn đề với tốt và en passant cho AI
@@ -903,8 +928,8 @@ class game_state:
         col_change = [-1, +1, -2, +2, -2, +2, +1, -1]
         for i in range(0, 8):
             if self.is_valid_piece(king_location_row + row_change[i], king_location_col + col_change[i]) and \
-                    not self.get_piece(king_location_row + row_change[i], king_location_col + col_change[i]).is_player(
-                        player):
+                    not self.get_piece(king_location_row + row_change[i], king_location_col + col_change[
+                        i]).is_player(player):
                 if (king_location_row, king_location_col) in self.get_piece(king_location_row + row_change[i],
                                                                             king_location_col + col_change[
                                                                                 i]).get_valid_piece_takes(self):
