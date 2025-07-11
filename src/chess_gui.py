@@ -44,7 +44,7 @@ def load_images():
         image_path = os.path.join(images_dir, p + ".png")
         IMAGES[p] = py.transform.smoothscale(py.image.load(image_path), (icon_size, icon_size))
 
-def draw_game_state(screen, game_state, valid_moves, square_selected, hint_valid_moves=None, best_moves_with_scores=None):
+def draw_game_state(screen, game_state, valid_moves, square_selected, hint_valid_moves=None, best_moves_with_scores=None, board_flipped=False):
     """
     Vẽ toàn bộ bàn cờ với các quân cờ
     
@@ -58,23 +58,29 @@ def draw_game_state(screen, game_state, valid_moves, square_selected, hint_valid
     """
     # Fill nền trắng toàn bộ
     screen.fill((255, 255, 255))
-    draw_squares(screen)
-    draw_labels(screen)
-    highlight_square(screen, game_state, valid_moves, square_selected)  # Đánh dấu ô được chọn và nước đi hợp lệ
+    draw_squares(screen, board_flipped)
+    draw_labels(screen, board_flipped)
+    highlight_square(screen, game_state, valid_moves, square_selected, board_flipped)  # Đánh dấu ô được chọn và nước đi hợp lệ
     # Highlight các ô hợp lệ khi nhấn Hint
     if hint_valid_moves:
         for move in hint_valid_moves:
             s = py.Surface((SQ_SIZE, SQ_SIZE))
             s.set_alpha(120)
             s.fill(py.Color(30, 144, 255))  # Xanh dương nhạt
-            screen.blit(s, (PADDING_LEFT + move[1] * SQ_SIZE, move[0] * SQ_SIZE))
+            r, c = move
+            if board_flipped:
+                r = 7 - r
+            screen.blit(s, (PADDING_LEFT + c * SQ_SIZE, r * SQ_SIZE))
     # Highlight các ô nước đi tốt nhất (màu cam)
     if best_moves_with_scores:
         for move, score in best_moves_with_scores:
             s = py.Surface((SQ_SIZE, SQ_SIZE))
             s.set_alpha(180)
             s.fill(py.Color(255, 140, 0))  # Cam
-            screen.blit(s, (PADDING_LEFT + move[1] * SQ_SIZE, move[0] * SQ_SIZE))
+            r, c = move
+            if board_flipped:
+                r = 7 - r
+            screen.blit(s, (PADDING_LEFT + c * SQ_SIZE, r * SQ_SIZE))
     # Highlight các ô mà nếu bạn đi vào, đối phương có thể ăn lại quân bạn ngay lập tức
     if square_selected != () and game_state.is_valid_piece(square_selected[0], square_selected[1]) and hint_valid_moves:
         threatened_next_moves = set()
@@ -97,23 +103,27 @@ def draw_game_state(screen, game_state, valid_moves, square_selected, hint_valid
             s = py.Surface((SQ_SIZE, SQ_SIZE))
             s.set_alpha(180)
             s.fill(py.Color(255, 140, 0))  # Cam
-            screen.blit(s, (PADDING_LEFT + sq[1] * SQ_SIZE, sq[0] * SQ_SIZE))
-    draw_pieces(screen, game_state)  # Vẽ các quân cờ
+            r, c = sq
+            if board_flipped:
+                r = 7 - r
+            screen.blit(s, (PADDING_LEFT + c * SQ_SIZE, r * SQ_SIZE))
+    draw_pieces(screen, game_state, board_flipped)  # Vẽ các quân cờ
 
-def draw_squares(screen):
+def draw_squares(screen, board_flipped=False):
     """
     Vẽ bàn cờ với các ô xen kẽ hai màu, có padding trái và dưới
     """
     for r in range(DIMENSION):
         for c in range(DIMENSION):
+            draw_r = 7 - r if board_flipped else r
             color = colors[(r + c) % 2]  # Xen kẽ màu sáng và tối
-            rect = py.Rect(PADDING_LEFT + c * SQ_SIZE, r * SQ_SIZE, SQ_SIZE, SQ_SIZE)
+            rect = py.Rect(PADDING_LEFT + c * SQ_SIZE, draw_r * SQ_SIZE, SQ_SIZE, SQ_SIZE)
             py.draw.rect(screen, color, rect)
             py.draw.rect(screen, (100, 100, 100), rect, 1)  # Vẽ viền màu xám đậm, dày 1 px
 
 
 
-def draw_pieces(screen, game_state):
+def draw_pieces(screen, game_state, board_flipped=False):
     """
     Vẽ các quân cờ lên bàn cờ, căn giữa icon trong ô vuông, có padding trái
     """
@@ -121,13 +131,14 @@ def draw_pieces(screen, game_state):
     offset = (SQ_SIZE - icon_size) // 2
     for r in range(DIMENSION):
         for c in range(DIMENSION):
+            draw_r = 7 - r if board_flipped else r
             piece = game_state.get_piece(r, c)
             if piece is not None and piece != Player.EMPTY:
                 img = IMAGES[piece.get_player() + "_" + piece.get_name()]
-                screen.blit(img, (PADDING_LEFT + c * SQ_SIZE + offset, r * SQ_SIZE + offset))
+                screen.blit(img, (PADDING_LEFT + c * SQ_SIZE + offset, draw_r * SQ_SIZE + offset))
 
 
-def highlight_square(screen, game_state, valid_moves, square_selected):
+def highlight_square(screen, game_state, valid_moves, square_selected, board_flipped=False):
     """
     Đánh dấu ô được chọn và các nước đi hợp lệ
     
@@ -139,6 +150,7 @@ def highlight_square(screen, game_state, valid_moves, square_selected):
     """
     if square_selected != () and game_state.is_valid_piece(square_selected[0], square_selected[1]):
         row, col = square_selected
+        draw_row = 7 - row if board_flipped else row
         # Kiểm tra xem quân cờ được chọn có thuộc về người chơi hiện tại không
         if (game_state.whose_turn() and game_state.get_piece(row, col).is_player(Player.PLAYER_1)) or \
            (not game_state.whose_turn() and game_state.get_piece(row, col).is_player(Player.PLAYER_2)):
@@ -147,12 +159,14 @@ def highlight_square(screen, game_state, valid_moves, square_selected):
             s = py.Surface((SQ_SIZE, SQ_SIZE))
             s.set_alpha(150)  # Tăng độ trong suốt để rõ hơn
             s.fill(py.Color(0, 0, 255))  # Màu xanh dương cho ô được chọn
-            screen.blit(s, (PADDING_LEFT + col * SQ_SIZE, row * SQ_SIZE))
+            screen.blit(s, (PADDING_LEFT + col * SQ_SIZE, draw_row * SQ_SIZE))
 
             # Đánh dấu các ô có thể di chuyển bằng màu xanh lá
             s.fill(py.Color(0, 255, 0, 100))  # Màu xanh lá nhạt cho các ô có thể đi
             for move in valid_moves:
-                screen.blit(s, (PADDING_LEFT + move[1] * SQ_SIZE, move[0] * SQ_SIZE))
+                r, c = move
+                draw_r = 7 - r if board_flipped else r
+                screen.blit(s, (PADDING_LEFT + c * SQ_SIZE, draw_r * SQ_SIZE))
 
 
 
@@ -166,30 +180,30 @@ def main(game_mode, player_color=None, difficulty=None):
         player_color (str, optional): Màu của người chơi ('white' hoặc 'black'). Mặc định là None.
         difficulty (str, optional): Độ khó ('easy', 'medium', 'hard').
     """
-    # Thiết lập chế độ chơi dựa trên đầu vào từ UI
     number_of_players = 1 if game_mode == 'ai' else 2
     human_player = ''
-    # Chọn depth AI theo độ khó:
-    #   - easy:    depth = 2 (AI yếu, nhanh)
-    #   - medium:  depth = 3 (AI trung bình)
-    #   - hard:    depth = 4 (AI mạnh, chậm hơn)
-    ai_depth = 3  # Mặc định depth=3
+    ai_depth = 3
+    player_at_bottom = 'white'
+    board_flipped = False
     if number_of_players == 1:
-        # 'w' cho trắng, 'b' cho đen
         human_player = 'w' if player_color == 'white' else 'b'
+        player_at_bottom = player_color
+        if player_color == 'white':
+            board_flipped = True
+        else:
+            board_flipped = False
         if difficulty == 'easy':
-            ai_depth = 2  # Dễ AI chỉ nhìn trước 2 lượt, rất dễ thắng, chạy nhanh
+            ai_depth = 2
         elif difficulty == 'medium':
-            ai_depth = 3  # Trung bình AI nhìn trước 3 lượt, không dễ thắng, chạy nhanh
+            ai_depth = 3
         elif difficulty == 'hard':
-            ai_depth = 4  # Khó AI nhìn trước 4 lượt, không dễ thắng, chạy chậm rất mất thời gian ngốn tài nguyên của máy
+            ai_depth = 4
 
-    # Khởi tạo pygame
     py.init()
     screen = py.display.set_mode((TOTAL_WIDTH, TOTAL_HEIGHT))
     clock = py.time.Clock()
-    game_state = chess_engine.game_state()
-    load_images()  # Tải hình ảnh quân cờ
+    game_state = chess_engine.game_state(player_at_bottom=player_at_bottom)
+    load_images()
 
     # Các biến trạng thái game
     running = True
@@ -272,6 +286,8 @@ def main(game_mode, player_color=None, difficulty=None):
                     if PADDING_LEFT <= location[0] < PADDING_LEFT + BOARD_WIDTH and location[1] < BOARD_HEIGHT:
                         col = (location[0] - PADDING_LEFT) // SQ_SIZE   # Chuyển đổi thành tọa độ cột, đã trừ padding
                         row = location[1] // SQ_SIZE   # Chuyển đổi thành tọa độ hàng
+                        if board_flipped:
+                            row = 7 - row
                         
                         # Xử lý click chuột
                         if square_selected == (row, col):
@@ -317,7 +333,7 @@ def main(game_mode, player_color=None, difficulty=None):
                                 best_moves_with_scores = []
 
                                 # Cập nhật màn hình ngay lập tức để hiển thị nước đi của người chơi
-                                draw_game_state(screen, game_state, valid_moves, square_selected, hint_valid_moves, best_moves_with_scores)
+                                draw_game_state(screen, game_state, valid_moves, square_selected, hint_valid_moves, best_moves_with_scores, board_flipped)
                                 py.display.flip()
 
                                 # AI thực hiện nước đi của mình nếu là chế độ chơi với máy
@@ -335,7 +351,7 @@ def main(game_mode, player_color=None, difficulty=None):
                                     # Vẽ lại sidebar để không bị overlay che mất
                                     draw_sidebar(screen, game_start_time, surrendered, game_over, game_end_time, number_of_players)
                                     # VẼ LẠI MOVE HISTORY ĐỂ KHÔNG BỊ CHE MẤT
-                                    draw_move_history(screen, game_state.move_log, number_of_players == 1, move_times, scroll_offset, game_over)
+                                    draw_move_history(screen, game_state.move_log, number_of_players == 1, move_times, scroll_offset, game_over, board_flipped)
                                     py.display.flip()
                                     # Đợi 2 giây để AI "suy nghĩ"
                                     time.sleep(2)
@@ -416,6 +432,22 @@ def main(game_mode, player_color=None, difficulty=None):
                     move_times = []
                     move_time_start = datetime.datetime.now()
                     scroll_offset = 0
+                    square_selected = ()
+                    player_clicks = []
+                    valid_moves = []
+                    # Cập nhật lại valid_moves cho lượt hiện tại
+                    if game_state.whose_turn():
+                        # Lượt trắng
+                        for r in range(8):
+                            for c in range(8):
+                                if game_state.is_valid_piece(r, c) and game_state.get_piece(r, c).is_player(Player.PLAYER_1):
+                                    valid_moves += game_state.get_valid_moves((r, c))
+                    else:
+                        # Lượt đen
+                        for r in range(8):
+                            for c in range(8):
+                                if game_state.is_valid_piece(r, c) and game_state.get_piece(r, c).is_player(Player.PLAYER_2):
+                                    valid_moves += game_state.get_valid_moves((r, c))
                 elif e.key == py.K_s:  # Phím S để đầu hàng
                     if not game_over:
                         surrendered = True
@@ -428,8 +460,8 @@ def main(game_mode, player_color=None, difficulty=None):
                 elif e.y < 0:  # Lăn xuống
                     scroll_offset = min(scroll_offset + 1, max(0, len(game_state.move_log)-1))
 
-        # Vẽ trạng thái game
-        draw_game_state(screen, game_state, valid_moves, square_selected, hint_valid_moves, best_moves_with_scores)
+        # Vẽ trạng thái game (truyền board_flipped)
+        draw_game_state(screen, game_state, valid_moves, square_selected, hint_valid_moves, best_moves_with_scores, board_flipped)
         # Nếu đang chờ chọn quân phong cấp, vẽ popup
         if promotion_pending:
             popup_w, popup_h = 340, 120
@@ -457,7 +489,7 @@ def main(game_mode, player_color=None, difficulty=None):
         draw_sidebar(screen, game_start_time, surrendered, game_over, game_end_time, number_of_players)
 
         # Vẽ move history
-        draw_move_history(screen, game_state.move_log, number_of_players == 1, move_times, scroll_offset, game_over)
+        draw_move_history(screen, game_state.move_log, number_of_players == 1, move_times, scroll_offset, game_over, board_flipped)
 
         # Kiểm tra trạng thái kết thúc game và vẽ màn hình kết thúc
         was_game_running = not game_over
@@ -699,25 +731,25 @@ def draw_end_game_buttons(screen):
 
     return tro_lai_rect, thoat_rect
 
-def draw_labels(screen):
+def draw_labels(screen, board_flipped=False):
     """
     Vẽ số (1-8) bên trái và chữ (a-h) bên dưới bàn cờ, có padding
     """
     font = py.font.SysFont("Arial", 18, True, False)
-    # Vẽ số 8-1 bên trái từng hàng
+    # Vẽ số 1-8 bên trái từng hàng (1 ở dưới, 8 ở trên, luôn như chuẩn quốc tế)
     for r in range(DIMENSION):
         label = str(DIMENSION - r)
         text = font.render(label, True, py.Color("black"))
         y = r * SQ_SIZE + SQ_SIZE // 2 - text.get_height() // 2
         screen.blit(text, (PADDING_LEFT // 2 - text.get_width() // 2, y))
-    # Vẽ chữ a-h bên dưới từng cột
+    # Vẽ chữ a-h bên dưới từng cột (không đổi)
     for c in range(DIMENSION):
         label = chr(ord('a') + c)
         text = font.render(label, True, py.Color("black"))
         x = PADDING_LEFT + c * SQ_SIZE + SQ_SIZE // 2 - text.get_width() // 2
         screen.blit(text, (x, BOARD_HEIGHT + (PADDING_BOTTOM // 2 - text.get_height() // 2)))
 
-def draw_move_history(screen, move_log, ai_mode, move_times, scroll_offset, game_over):
+def draw_move_history(screen, move_log, ai_mode, move_times, scroll_offset, game_over, board_flipped=False):
     # Vẽ khung textbox
     sidebar_left = PADDING_LEFT + BOARD_WIDTH
     box_x = sidebar_left + 20
@@ -739,8 +771,15 @@ def draw_move_history(screen, move_log, ai_mode, move_times, scroll_offset, game
         color = "white" if idx % 2 == 0 else "black"
         piece = move.get_moving_piece().get_name().upper()
         piece_name = piece_full.get(piece, piece)
-        start = chr(ord('a') + move.starting_square_col) + str(8 - move.starting_square_row)
-        end = chr(ord('a') + move.ending_square_col) + str(8 - move.ending_square_row)
+        # Sửa lại chuyển đổi row thành số hàng (1-8) theo hướng board_flipped
+        if board_flipped:
+            start_row = 7 - move.starting_square_row
+            end_row = 7 - move.ending_square_row
+        else:
+            start_row = move.starting_square_row
+            end_row = move.ending_square_row
+        start = chr(ord('a') + move.starting_square_col) + str(8 - start_row)
+        end = chr(ord('a') + move.ending_square_col) + str(8 - end_row)
         move_str = f"{idx+1}. {color} ({piece_name}) : {start} => {end}"
         # Hiển thị thời gian theo định dạng XmYs (kể cả khi dưới phút(m) và giấy(s))
         if idx < len(move_times):
