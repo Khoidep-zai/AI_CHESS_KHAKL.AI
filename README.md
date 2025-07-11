@@ -285,6 +285,23 @@ src/
 
 ## 4. Giải thích chi tiết thuật toán AI: Minimax & Alpha-Beta Pruning
 
+### 4.0. Khái niệm về Minimax và Alpha-Beta Pruning
+
+#### Minimax là gì?
+
+Minimax là một thuật toán ra quyết định trong các trò chơi đối kháng như cờ vua, cờ caro, cờ tướng... Thuật toán này giúp AI giả lập tất cả các nước đi có thể xảy ra, giả định rằng cả AI và đối thủ đều chơi tối ưu.  
+- **AI (Max)** luôn cố gắng chọn nước đi để điểm số bàn cờ là lớn nhất cho mình.
+- **Đối thủ (Min)** luôn cố gắng chọn nước đi để điểm số bàn cờ là nhỏ nhất cho AI.
+
+#### Alpha-Beta Pruning là gì?
+
+Alpha-Beta Pruning là kỹ thuật tối ưu hóa cho Minimax, giúp loại bỏ các nhánh không cần thiết trong cây tìm kiếm, từ đó tăng tốc độ tính toán.  
+- **Alpha** là giá trị lớn nhất mà AI (Max) chắc chắn đạt được.
+- **Beta** là giá trị nhỏ nhất mà đối thủ (Min) chắc chắn đạt được.
+- Nếu tại một nhánh, beta ≤ alpha, thuật toán sẽ dừng duyệt nhánh đó vì không thể có kết quả tốt hơn.
+
+---
+
 ### 4.1. Tổng quan hoạt động
 
 Khi đến lượt AI, thuật toán sẽ duyệt qua tất cả các nước đi hợp lệ, giả lập từng trạng thái bàn cờ mới, đánh giá điểm số, và chọn nước đi tối ưu nhất dựa trên việc giả định đối thủ cũng sẽ chơi tối ưu.
@@ -325,12 +342,12 @@ Lượt AI (Max)
 
 ```
            AI (Max)
-          /      \
-      5           ?
-    /   \       /   \
-   3     5     2     4
-  / \   / \   / \   / \
- 3  3  5  5  2  2  4  4
+          /        \
+        5           ?
+      /   \       /   \
+     3     5     2     4
+    / \   / \   / \   / \
+    3  3  5  5  2  2  4  4
 
 Nếu nhánh bên trái đã có điểm số 5 (alpha), khi duyệt nhánh bên phải, nếu điểm số nhỏ hơn 5 (beta <= alpha), thuật toán sẽ bỏ qua các nhánh còn lại.
 ```
@@ -529,5 +546,90 @@ gs.move_piece(*best_move)
 - Có thể thay đổi độ sâu (`depth`) để kiểm tra sự khác biệt giữa các chế độ AI.
 
 ---
+
+### 4.9. Giải thích chi tiết về game_state và cách xác định vị trí quân cờ
+
+#### 1. Khởi tạo game_state
+
+- **game_state** là class trung tâm quản lý toàn bộ trạng thái bàn cờ, các quân cờ, lượt chơi, lịch sử nước đi, kiểm tra luật cờ...
+- Khi bạn tạo một đối tượng game_state, bàn cờ sẽ được khởi tạo với các quân cờ ở vị trí ban đầu theo luật cờ vua.
+
+**Ví dụ khởi tạo:**
+```python
+from chess_engine import game_state
+
+gs = game_state()  # Tạo bàn cờ mới, quân cờ được đặt đúng vị trí xuất phát
+```
+
+#### 2. Hàm get_piece(row, col) dùng để làm gì?
+
+- Hàm này trả về đối tượng quân cờ nằm ở vị trí hàng `row`, cột `col` trên bàn cờ.
+- Nếu vị trí đó không có quân cờ, hàm sẽ trả về None hoặc một giá trị đặc biệt (tùy cách cài đặt).
+
+**Cách sử dụng:**
+```python
+piece = gs.get_piece(6, 0)  # Lấy quân cờ ở hàng 6, cột 0 (thường là tốt trắng ở vị trí xuất phát)
+if piece is not None:
+    print(piece.get_name())  # In ra tên quân cờ, ví dụ 'Pawn'
+    print(piece.get_player())  # In ra người sở hữu quân cờ (Player.PLAYER_1 hoặc Player.PLAYER_2)
+```
+
+#### 3. Làm sao để rà vị trí quân cờ trên bàn?
+
+- Bạn có thể duyệt qua toàn bộ bàn cờ bằng vòng lặp, kiểm tra từng ô bằng `get_piece(row, col)` để xác định quân cờ nào đang ở đâu.
+
+**Ví dụ rà toàn bộ bàn cờ:**
+```python
+for row in range(8):
+    for col in range(8):
+        piece = gs.get_piece(row, col)
+        if piece is not None:
+            print(f"Quân {piece.get_name()} của {piece.get_player()} ở vị trí ({row}, {col})")
+```
+
+#### 4. Ứng dụng trong AI
+
+- Khi AI cần đánh giá bàn cờ, nó sẽ sử dụng các hàm như `get_piece(row, col)` để xác định vị trí, loại quân, và tính toán điểm số cho từng trạng thái.
+- Các hàm như `get_valid_moves(player)` sẽ dựa vào vị trí quân cờ để trả về danh sách nước đi hợp lệ cho từng người chơi.
+
+---
+
+**Tóm lại:**  
+- game_state giúp quản lý toàn bộ bàn cờ và quân cờ.
+- get_piece(row, col) là công cụ để truy xuất vị trí và thông tin quân cờ trên bàn.
+- Bạn có thể duyệt bàn cờ, kiểm tra vị trí, loại quân, và sử dụng thông tin này cho AI hoặc giao diện.
+
+---
+
+### 4.10. Mô tả cách Minimax và Alpha-Beta hoạt động trên bàn cờ
+
+1. **Xác định vị trí quân cờ:**  
+   - AI sử dụng trạng thái bàn cờ (game_state) để biết vị trí từng quân cờ, loại quân, màu quân.
+   - Các hàm như `get_piece(row, col)` giúp truy xuất quân cờ tại vị trí cụ thể.
+
+2. **Đánh giá nước đi:**  
+   - AI duyệt tất cả nước đi hợp lệ bằng hàm `get_valid_moves(player)`.
+   - Với mỗi nước đi, AI giả lập trạng thái bàn cờ mới bằng `move_piece`.
+   - Đánh giá bàn cờ bằng hàm `evaluate_board(game_state)`, dựa trên giá trị quân cờ (hậu, xe, mã, tốt...) và vị trí chiến lược.
+
+3. **Quy trình Minimax:**  
+   - Ở mỗi lượt, AI sẽ thử tất cả nước đi, giả lập phản ứng của đối thủ, tiếp tục cho đến độ sâu nhất định (depth).
+   - Ở mỗi trạng thái, AI tính điểm số bàn cờ và chọn nước đi tối ưu nhất.
+
+4. **Quy trình Alpha-Beta:**  
+   - Khi duyệt cây nước đi, nếu điểm số của một nhánh không thể tốt hơn nhánh đã duyệt, thuật toán sẽ bỏ qua nhánh đó để tiết kiệm thời gian.
+
+---
+
+**Ví dụ đánh giá nước đi:**
+- Nếu AI có thể ăn quân hậu ♛ của đối thủ, điểm số sẽ tăng mạnh.
+- Nếu AI di chuyển quân tốt ♙ lên gần phong cấp, điểm số cũng tăng.
+- Nếu AI bị chiếu hết, điểm số sẽ rất thấp.
+
+---
+
+**Tóm lại:**  
+Minimax giúp AI "nhìn trước" nhiều lượt, đánh giá từng trạng thái bàn cờ, chọn nước đi tối ưu. Alpha-Beta Pruning giúp quá trình này nhanh hơn bằng cách loại bỏ các nhánh không cần thiết.  
+AI xác định vị trí quân cờ và đánh giá nước đi dựa vào trạng thái bàn cờ, giá trị quân, và các hàm kiểm tra luật trong game_state.
 
 
