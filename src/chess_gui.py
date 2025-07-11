@@ -8,6 +8,11 @@ import copy
 
 import ai_engine
 from enums import Player
+# Thêm import hàm vẽ mặt
+import sys
+import os
+sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+from face_pixel.faces import draw_baby_face, draw_adult_face, draw_old_face
 
 """Các biến cấu hình cho giao diện"""
 STATUS_BAR_HEIGHT = 50  # Chiều cao thanh trạng thái
@@ -349,7 +354,7 @@ def main(game_mode, player_color=None, difficulty=None):
                                     text_location = text_object.get_rect(center=(center_x, center_y))
                                     screen.blit(text_object, text_location)
                                     # Vẽ lại sidebar để không bị overlay che mất
-                                    draw_sidebar(screen, game_start_time, surrendered, game_over, game_end_time, number_of_players)
+                                    draw_sidebar(screen, game_start_time, surrendered, game_over, game_end_time, number_of_players, difficulty)
                                     # VẼ LẠI MOVE HISTORY ĐỂ KHÔNG BỊ CHE MẤT
                                     draw_move_history(screen, game_state.move_log, number_of_players == 1, move_times, scroll_offset, game_over, board_flipped)
                                     py.display.flip()
@@ -374,40 +379,40 @@ def main(game_mode, player_color=None, difficulty=None):
                     else:
                         # Kiểm tra click vào nút đầu hàng
                         button_rect = py.Rect(BOARD_WIDTH + 30, 150, SIDEBAR_WIDTH - 60, 50)
-                        if button_rect.collidepoint(location) and not surrendered and not game_over:
+                        if button_rect and button_rect.collidepoint(location) and not surrendered and not game_over:
                             surrendered = True
                             game_over = True
                         # Kiểm tra click vào nút Hint (chỉ khi chơi với AI, không game_over)
-                        if number_of_players == 1 and not game_over:
-                            hint_button_rect = py.Rect(BOARD_WIDTH + 30, 220, SIDEBAR_WIDTH - 60, 50)
-                            if hint_button_rect.collidepoint(location):
-                                # Đảm bảo không làm gì với game_over hay restart_ui ở đây
-                                # Chỉ highlight nếu đã chọn quân
-                                if square_selected != () and game_state.is_valid_piece(square_selected[0], square_selected[1]):
-                                    moves = game_state.get_valid_moves(square_selected)
-                                    hint_valid_moves = moves if moves else []
-                                    # Tìm nước đi tốt nhất (cam) nhưng KHÔNG reset bàn cờ, không hiển thị điểm số
-                                    best_moves_with_scores = []
-                                    if moves:
-                                        ai_hint = ai_engine.chess_ai()
-                                        scored_moves = []
-                                        minimax_depth = 2
-                                        for move in moves:
-                                            # Sử dụng deepcopy để không làm thay đổi trạng thái bàn cờ thật
-                                            temp_state = copy.deepcopy(game_state)
-                                            temp_state.move_piece(square_selected, move, True)
-                                            if human_player == 'w':
-                                                score = ai_hint.minimax_white(temp_state, minimax_depth-1, -100000, 100000, False, 'white', minimax_depth)
-                                            else:
-                                                score = ai_hint.minimax_black(temp_state, minimax_depth-1, -100000, 100000, False, 'black', minimax_depth)
-                                            # Không cần undo_move vì temp_state là bản sao
-                                            if isinstance(score, (int, float)):
-                                                scored_moves.append((move, score))
-                                        scored_moves.sort(key=lambda x: x[1], reverse=(human_player=='w'))
-                                        best_moves_with_scores = scored_moves[:2]
+                        if number_of_players == 1 and not game_over and hint_button_rect and hint_button_rect.collidepoint(location):
+                            # Đảm bảo không làm gì với game_over hay restart_ui ở đây
+                            # Chỉ highlight nếu đã chọn quân
+                            if square_selected != () and game_state.is_valid_piece(square_selected[0], square_selected[1]):
+                                moves = game_state.get_valid_moves(square_selected)
+                                hint_valid_moves = moves if moves else []
+                                # Tìm nước đi tốt nhất (cam) nhưng KHÔNG reset bàn cờ, không hiển thị điểm số
+                                best_moves_with_scores = []
+                                if moves:
+                                    ai_hint = ai_engine.chess_ai()
+                                    scored_moves = []
+                                    minimax_depth = 2
+                                    for move in moves:
+                                        # Sử dụng deepcopy để không làm thay đổi trạng thái bàn cờ thật
+                                        temp_state = copy.deepcopy(game_state)
+                                        temp_state.move_piece(square_selected, move, True)
+                                        if human_player == 'w':
+                                            score = ai_hint.minimax_white(temp_state, minimax_depth-1, -100000, 100000, False, 'white', minimax_depth)
+                                        else:
+                                            score = ai_hint.minimax_black(temp_state, minimax_depth-1, -100000, 100000, False, 'black', minimax_depth)
+                                        # Không cần undo_move vì temp_state là bản sao
+                                        if isinstance(score, (int, float)):
+                                            scored_moves.append((move, score))
+                                    scored_moves.sort(key=lambda x: x[1], reverse=(human_player=='w'))
+                                    best_moves_with_scores = scored_moves[:2]
                                 else:
                                     hint_valid_moves = []
                                     best_moves_with_scores = []
+                        else:
+                            pass
             elif e.type == py.KEYDOWN:
                 if e.key == py.K_r:  # Phím R để reset game
                     game_over = False
@@ -485,8 +490,8 @@ def main(game_mode, player_color=None, difficulty=None):
                 screen.blit(py.transform.smoothscale(img, (btn_size, btn_size)), btn_rect.topleft)
                 py.draw.rect(screen, (200, 200, 200), btn_rect, 2)
 
-        # Vẽ cột bên phải với bảng thời gian và nút đầu hàng
-        draw_sidebar(screen, game_start_time, surrendered, game_over, game_end_time, number_of_players)
+        # Vẽ cột bên phải với bảng thời gian và nút đầu hàng, nhận lại vùng click thực tế
+        button_rect, hint_button_rect = draw_sidebar(screen, game_start_time, surrendered, game_over, game_end_time, number_of_players, difficulty)
 
         # Vẽ move history
         draw_move_history(screen, game_state.move_log, number_of_players == 1, move_times, scroll_offset, game_over, board_flipped)
@@ -637,7 +642,7 @@ def draw_controls(screen):
         text_object = font.render(text, True, py.Color("black"))
         screen.blit(text_object, (10, y_position + i * 15))
 
-def draw_sidebar(screen, start_time, surrendered, game_over, game_end_time, number_of_players):
+def draw_sidebar(screen, start_time, surrendered, game_over, game_end_time, number_of_players, difficulty=None):
     """
     Vẽ cột bên phải với bảng thời gian và nút đầu hàng
     """
@@ -665,6 +670,23 @@ def draw_sidebar(screen, start_time, surrendered, game_over, game_end_time, numb
     py.draw.rect(screen, (255, 255, 255), time_box_rect)  # Nền trắng
     py.draw.rect(screen, (0, 0, 0), time_box_rect, 2)  # Viền đen
     screen.blit(time_surface, time_rect)
+
+    # --- Vẽ khuôn mặt động ---
+    # Xác định độ khó (nếu có)
+    face_size = 64  # Đường kính hình tròn lớn hơn
+    pixel_size = 6  # Mỗi pixel của mặt
+    face_y = time_box_rect.bottom + 12  # Cách khung thời gian 12px
+    face_x = sidebar_left + SIDEBAR_WIDTH // 2 - face_size // 2
+    face_surface = py.Surface((face_size, face_size), py.SRCALPHA)
+    mx, my = py.mouse.get_pos()
+    if difficulty == 'easy':
+        draw_baby_face(face_surface, mx, my, 0, 0, pixel_size=pixel_size, abs_x=face_x, abs_y=face_y)
+    elif difficulty == 'medium':
+        draw_adult_face(face_surface, mx, my, 0, 0, pixel_size=pixel_size, abs_x=face_x, abs_y=face_y)
+    elif difficulty == 'hard':
+        draw_old_face(face_surface, mx, my, 0, 0, pixel_size=pixel_size, abs_x=face_x, abs_y=face_y)
+    screen.blit(face_surface, (face_x, face_y))
+
     # Vẽ nút đầu hàng
     surrender_font = py.font.SysFont("Arial", 20, True, False)
     if surrendered or game_over:
@@ -675,32 +697,27 @@ def draw_sidebar(screen, start_time, surrendered, game_over, game_end_time, numb
         button_color = (220, 50, 50)
         text_color = (255, 255, 255)
         button_text = "Loser"
-    button_rect = py.Rect(sidebar_left + 30, 150, SIDEBAR_WIDTH - 60, 50)
+    # Đặt nút đầu hàng sát hơn với mặt, cách mặt 6px
+    button_rect = py.Rect(sidebar_left + 30, face_y + face_size + 6, SIDEBAR_WIDTH - 60, 50)  # Sát mặt hơn
     py.draw.rect(screen, button_color, button_rect)
     py.draw.rect(screen, (0, 0, 0), button_rect, 2)
     surrender_surface = surrender_font.render(button_text, True, text_color)
     surrender_text_rect = surrender_surface.get_rect(center=button_rect.center)
     screen.blit(surrender_surface, surrender_text_rect)
+
     # Vẽ nút Hint nếu chơi với AI
     if number_of_players == 1 and not game_over:
         hint_font = py.font.SysFont("Arial", 20, True, False)
-        hint_button_rect = py.Rect(sidebar_left + 30, 220, SIDEBAR_WIDTH - 60, 50)
+        # Đặt nút Hint sát hơn với nút đầu hàng, chỉ cách 8px
+        hint_button_rect = py.Rect(sidebar_left + 30, button_rect.bottom + 8, SIDEBAR_WIDTH - 60, 50)
         py.draw.rect(screen, (50, 205, 50), hint_button_rect)
         py.draw.rect(screen, (0, 128, 0), hint_button_rect, 2)
         hint_text = hint_font.render("Hint", True, (255, 255, 255))
         hint_text_rect = hint_text.get_rect(center=hint_button_rect.center)
         screen.blit(hint_text, hint_text_rect)
-    # Vẽ hướng dẫn phím tắt
-    controls_font = py.font.SysFont("Arial", 16, True, False)
-    controls_text = [
-        "Keys:   ",
-        "R:   Reset",
-        "U:   Undo"
-    ]
-    y_start = 290
-    for i, text in enumerate(controls_text):
-        text_surface = controls_font.render(text, True, py.Color("black"))
-        screen.blit(text_surface, (sidebar_left + 20, y_start + i * 20))
+    else:
+        hint_button_rect = None
+    return button_rect, hint_button_rect
 
 def draw_end_game_buttons(screen):
     """
