@@ -44,7 +44,7 @@ python-chess-master/
 
 ## 2. Sơ đồ kiến trúc & luồng hoạt động
 
-![Sơ đồ kiến trúc chương trình](images/so%20do.jpg)
+![Sơ đồ kiến trúc chương trình](images//tổng%20hợp%20sơ%20đồ%20ảnh%20giải%20thích/so%20do.jpg)
 
 - **src/**: Toàn bộ logic, AI, giao diện, engine cờ vua.
 - **face_pixel/**: Demo vẽ mặt pixel (baby, adult, old) bằng pygame, không liên quan trực tiếp đến game cờ vua.
@@ -134,27 +134,25 @@ python face_pixel/mẫu/old.py
 
 ---
 
-> **Bản quyền & phát triển:**
-> - Nhóm KHAKL.AI - Đồ án AI 2025
-> - Liên hệ: ...
+> **Nhóm phát triển:**
+> - Nhóm KHAKL.AI Văn Lang univiersity - Đồ án AI 6/2025
+> - Liên hệ: chủ kênh github
 
 ---
 
 ## 8. Phân tích giải thuật Minimax & Alpha-Beta Pruning
 
 ### 8.1. Minimax là gì?
-- **Minimax** là giải thuật ra quyết định trong các trò chơi đối kháng (như cờ vua, caro, cờ tướng...).
+- **Minimax** là một quy tắc quyết định giúp giảm thiểu tổn thất tối đa có thể xảy ra trong trường hợp xấu nhất cho người chơi. Giải thuật có thể giảm thiểu tổn thất tiềm ẩn bằng cách sử dụng các đánh giá vị trí để dự đoán nước đi tiếp theo của đối thủ. Kết quả của thuật toán minimax thường được hiển thị trên sơ đồ cây để biểu diễn từng tổ hợp.
+
 - Ý tưởng: AI giả lập tất cả các nước đi có thể xảy ra, giả định cả AI và đối thủ đều chơi tối ưu.
     - **AI (Max)** luôn chọn nước đi để điểm số bàn cờ là lớn nhất cho mình.
     - **Đối thủ (Min)** luôn chọn nước đi để điểm số bàn cờ là nhỏ nhất cho AI.
 
-### 8.2. Alpha-Beta Pruning là gì?
-- **Alpha-Beta Pruning** là kỹ thuật tối ưu hóa cho Minimax, giúp loại bỏ các nhánh không cần thiết trong cây tìm kiếm, tăng tốc độ tính toán.
-    - **Alpha**: Giá trị lớn nhất mà AI (Max) chắc chắn đạt được.
-    - **Beta**: Giá trị nhỏ nhất mà đối thủ (Min) chắc chắn đạt được.
-    - Nếu tại một nhánh, beta ≤ alpha, thuật toán sẽ dừng duyệt nhánh đó vì không thể có kết quả tốt hơn.
+**Hoạt động** bằng cách khám phá đệ quy tất cả các trạng thái trò chơi có thể xảy ra (được biểu diễn dưới dạng cấu trúc cây) và gán giá trị cho các nút lá dựa trên kết quả tiềm năng của trò chơi. 
+Thuật toán sau đó sẽ truyền các giá trị này lên cây để tìm nước đi tối ưu. Tuy nhiên, khi độ phức tạp của trò chơi tăng lên, số lượng các trạng thái khả dĩ cũng tăng theo cấp số nhân, dẫn đến chi phí tính toán rất cao.
 
-![Sơ đồ tổng quát Minimax](images/minimax_tree.jpg)
+![Sơ đồ tổng quát Minimax](images//tổng%20hợp%20sơ%20đồ%20ảnh%20giải%20thích/minimax_tree.jpg)
 
 **Giải thích:**
 - Node đầu tiên (AI - Max, màu xanh lá hoặc có ký hiệu 🟢) là lượt của máy tính.
@@ -165,9 +163,9 @@ python face_pixel/mẫu/old.py
 - AI sẽ chọn nước đi sao cho điểm số tệ nhất mà mình nhận được là lớn nhất (chiến lược tối ưu hóa).
 - Node/nước đi được đánh dấu ⭐ là nước đi tốt nhất mà AI sẽ chọn.
 
-### 8.3. Ví dụ minh họa đơn giản
+### 8.1.1 Ví dụ minh họa đơn giản
 
-![Sơ đồ ví dụ minh họa Minimax](images/minimax_example.jpg)
+![Sơ đồ ví dụ minh họa Minimax](images//tổng%20hợp%20sơ%20đồ%20ảnh%20giải%20thích/minimax_example.jpg)
 
 **Giải thích:**
 - AI có 2 lựa chọn: Nước đi A và Nước đi B.
@@ -176,15 +174,27 @@ python face_pixel/mẫu/old.py
 - AI sẽ chọn nước đi A vì điểm số tệ nhất của A (0) vẫn tốt hơn điểm số tệ nhất của B (-1).
 - Node ⭐ là điểm số tệ nhất mà AI sẽ nhận được nếu chọn nước đi đó (chiến lược "chọn tốt nhất trong các trường hợp xấu nhất").
 
-### 8.4. Alpha-Beta Pruning là gì?
+Đây chính là lúc Alpha Beta Pruning trở nên quan trọng. Nó giảm số lượng nút mà thuật toán minimax cần đánh giá bằng cách "cắt tỉa" các nhánh không thể ảnh hưởng đến quyết định cuối cùng. 
+Bằng cách loại bỏ các tính toán không cần thiết, nó đơn giản hóa quy trình ra quyết định, cho phép đánh giá nhanh hơn và hiệu quả hơn. Do đó, Alpha Beta Pruning rất thiết thực cho các ứng dụng thời gian thực, chẳng hạn như AI chơi game, nơi tốc độ và hiệu quả là yếu tố then chốt.
+
+### 8.2. Alpha-Beta Pruning là gì?
 - **Alpha-Beta Pruning** là kỹ thuật tối ưu hóa cho Minimax, giúp loại bỏ các nhánh không cần thiết trong cây tìm kiếm, tăng tốc độ tính toán.
-    - **Alpha**: Giá trị lớn nhất mà AI (Max) chắc chắn đạt được.
-    - **Beta**: Giá trị nhỏ nhất mà đối thủ (Min) chắc chắn đạt được.
+    - **Alpha**: là Gía trị biểu thị giá trị tốt nhất (giá trị cao nhất) mà người chơi tối đa hóa (thường là AI) có thể đảm bảo cho đến nay. Nó hoạt động như một giới hạn dưới. Giá trị ban đầu của alpha là −∞.
+
+    - **Beta**: đại diện cho giá trị tốt nhất (giá trị thấp nhất) mà người chơi tối thiểu hóa (đối thủ) có thể đảm bảo cho đến nay. Nó hoạt động như một giới hạn trên. Giá trị ban đầu của alpha là +∞
+
     - Nếu tại một nhánh, beta ≤ alpha, thuật toán sẽ dừng duyệt nhánh đó vì không thể có kết quả tốt hơn.
 
-### 8.5. Sơ đồ Alpha-Beta Pruning
+**Quá trình cắt tỉa**
+  - Khi AI khám phá cây, nó sẽ theo dõi các giá trị Alpha và Beta. Khi khám phá một nút, nó sẽ so sánh giá trị của nút đó với các giá trị này.
+  - Nếu tại bất kỳ thời điểm nào,  Alpha  lớn hơn hoặc bằng Beta , điều đó có nghĩa là nhánh hiện tại sẽ không ảnh hưởng đến quyết định cuối cùng vì đối thủ sẽ tránh đường đi này để chọn một đường đi tốt hơn. Kết quả là, nhánh này bị cắt tỉa và thuật toán chuyển sang nhánh tiếp theo.
+  - Quá trình này cho phép thuật toán bỏ qua các phần lớn của cây, giúp giảm đáng kể số lượng nút cần đánh giá
 
-![Sơ đồ Alpha-Beta Pruning](images/alphabeta_pruning.jpg)
+
+
+### 8.2.1 Sơ đồ Alpha-Beta Pruning
+
+![Sơ đồ Alpha-Beta Pruning](images/tổng hợp sơ đồ ảnh giải thích/Alpha-Beta Pruning.jpg)
 
 **Giải thích:**
 - Các nhánh bị đánh dấu 🚫 hoặc màu đỏ là nhánh bị "cắt tỉa" (pruned), tức là không cần duyệt tiếp vì chắc chắn không thể tốt hơn các nhánh đã duyệt.
@@ -192,7 +202,7 @@ python face_pixel/mẫu/old.py
 - Node AI (Max) vẫn là điểm xuất phát, các node Min là lượt của đối thủ.
 - Khi AI phát hiện một nhánh không thể tốt hơn nhánh đã có, nó sẽ bỏ qua các nhánh còn lại (ví dụ: các node có ký hiệu 🚫).
 
-### 8.6. Mã giả thuật toán Minimax (có Alpha-Beta)
+### 8.3. Mã giả thuật toán Minimax (có Alpha-Beta)
 
 ```python
 def minimax(node, depth, alpha, beta, maximizingPlayer):
@@ -218,7 +228,7 @@ def minimax(node, depth, alpha, beta, maximizingPlayer):
         return minEval
 ```
 
-### 8.7. Ứng dụng thực tế trong game cờ vua
+### 8.4. Ứng dụng thực tế trong game cờ vua
 - AI sẽ duyệt tất cả nước đi hợp lệ, giả lập trạng thái bàn cờ mới, đánh giá điểm số, và chọn nước đi tối ưu nhất dựa trên việc giả định đối thủ cũng sẽ chơi tối ưu.
 - Độ sâu (depth) càng lớn, AI càng mạnh nhưng càng tốn thời gian.
 
