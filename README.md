@@ -590,7 +590,7 @@ for row in range(8):
 #### 4. Ứng dụng trong AI
 
 - Khi AI cần đánh giá bàn cờ, nó sẽ sử dụng các hàm như `get_piece(row, col)` để xác định vị trí, loại quân, và tính toán điểm số cho từng trạng thái.
-- Các hàm như `get_valid_moves(player)` sẽ dựa vào vị trí quân cờ để trả về danh sách nước đi hợp lệ cho từng người chơi.
+- Các hàm như `get_valid_moves(player)` sẽ dựa vào vị trí quân cờ để trả về danh sách nước đi hợp lệ cho người chơi.
 
 ---
 
@@ -630,6 +630,36 @@ for row in range(8):
 
 **Tóm lại:**  
 Minimax giúp AI "nhìn trước" nhiều lượt, đánh giá từng trạng thái bàn cờ, chọn nước đi tối ưu. Alpha-Beta Pruning giúp quá trình này nhanh hơn bằng cách loại bỏ các nhánh không cần thiết.  
-AI xác định vị trí quân cờ và đánh giá nước đi dựa vào trạng thái bàn cờ, giá trị quân, và các hàm kiểm tra luật trong game_state.
+AI xác định vị trí quân cờ và đánh giá nước đi dựa vào trạng thái bàn cờ, giá trị quân cờ, và các hàm kiểm tra luật trong game_state.
+
+### Mô tả ma trận bàn cờ 8x8
+
+Bàn cờ được biểu diễn dưới dạng một ma trận 2 chiều (8x8), mỗi phần tử là một ô trên bàn cờ với tọa độ (row, col):
+
+'''
+Cấu trúc bàn cờ 8x8:
+r \ c         0           1           2           3           4           5           6           7 
+  0     [(r=0, c=0), (r=0, c=1), (r=0, c=2), (r=0, c=3), (r=0, c=4), (r=0, c=5), (r=0, c=6), (r=0, c=7)]
+  1     [(r=1, c=0), (r=1, c=1), (r=1, c=2), (r=1, c=3), (r=1, c=4), (r=1, c=5), (r=1, c=6), (r=1, c=7)]
+  2     [(r=2, c=0), (r=2, c=1), (r=2, c=2), (r=2, c=3), (r=2, c=4), (r=2, c=5), (r=2, c=6), (r=2, c=7)]
+  3     [(r=3, c=0), (r=3, c=1), (r=3, c=2), (r=3, c=3), (r=3, c=4), (r=3, c=5), (r=3, c=6), (r=3, c=7)]
+  4     [(r=4, c=0), (r=4, c=1), (r=4, c=2), (r=4, c=3), (r=4, c=4), (r=4, c=5), (r=4, c=6), (r=4, c=7)]
+  5     [(r=5, c=0), (r=5, c=1), (r=5, c=2), (r=5, c=3), (r=5, c=4), (r=5, c=5), (r=5, c=6), (r=5, c=7)]
+  6     [(r=6, c=0), (r=6, c=1), (r=6, c=2), (r=6, c=3), (r=6, c=4), (r=6, c=5), (r=6, c=6), (r=6, c=7)]
+  7     [(r=7, c=0), (r=7, c=1), (r=7, c=2), (r=7, c=3), (r=7, c=4), (r=7, c=5), (r=7, c=6), (r=7, c=7)]
+'''
+
+- **Hàng (row)**: từ 0 đến 7 (trên xuống dưới).
+- **Cột (col)**: từ 0 đến 7 (trái sang phải).
+- Mỗi ô có thể chứa một quân cờ (ví dụ: ♙, ♟, ♔, ♚...) hoặc là ô trống.
+
+**Ví dụ truy xuất quân cờ:**
+```python
+piece = board[6][0]  # Quân tốt đen ở vị trí a7
+```
+
+**Ứng dụng trong thuật toán:**
+- AI và các hàm kiểm tra nước đi sẽ duyệt qua từng ô của ma trận này để xác định vị trí quân cờ, kiểm tra nước đi hợp lệ, giả lập trạng thái mới, v.v.
+- Việc sử dụng ma trận giúp thao tác nhanh, dễ kiểm tra, dễ cập nhật trạng thái bàn cờ sau mỗi nước đi.
 
 
