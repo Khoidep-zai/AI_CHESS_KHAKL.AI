@@ -194,7 +194,7 @@ Bằng cách loại bỏ các tính toán không cần thiết, nó đơn giản
 
 ### 8.2.1 Sơ đồ Alpha-Beta Pruning
 
-![Sơ đồ Alpha-Beta Pruning](images/tổng hợp sơ đồ ảnh giải thích/Alpha-Beta Pruning.jpg)
+![Sơ đồ Alpha-Beta Pruning](images/tổng%20hợp%20sơ%20đồ%20ảnh%20giải%20thích//Alpha-Beta%20Pruning.jpg)
 
 **Giải thích:**
 - Các nhánh bị đánh dấu 🚫 hoặc màu đỏ là nhánh bị "cắt tỉa" (pruned), tức là không cần duyệt tiếp vì chắc chắn không thể tốt hơn các nhánh đã duyệt.
