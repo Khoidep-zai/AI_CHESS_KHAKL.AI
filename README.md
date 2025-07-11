@@ -129,108 +129,162 @@ src/
 ### 3.8. `requirements.txt`
 - **Mục đích:** Liệt kê thư viện cần thiết (chỉ cần `pygame`).
 
----
+### 3.9. Giải thích chi tiết cách sử dụng các hàm tiêu biểu
 
-## 4. Luồng hoạt động tổng thể
-
-1. **Khởi động:** Chạy `chesssetup.py` → Giao diện menu (Tkinter) → Chọn chế độ chơi.
-2. **Vào game:** Giao diện Pygame hiện ra, vẽ bàn cờ, quân cờ, sidebar, timer, lịch sử nước đi.
-3. **Chơi game:** Người chơi hoặc AI thực hiện nước đi, cập nhật trạng thái, kiểm tra luật, vẽ lại giao diện.
-4. **Kết thúc:** Khi chiếu hết, hòa, đầu hàng... hiện popup chuyên nghiệp, chọn "Trở lại" hoặc "Thoát".
-
----
-
-## 5. Hướng dẫn bảo trì/nâng cấp
-
-- **Muốn thêm luật mới:** Sửa trong `chess_engine.py` (class `game_state`)
-- **Muốn thay đổi giao diện:** Sửa trong `chess_gui.py` (các hàm vẽ, biến cấu hình)
-- **Muốn nâng cấp AI:** Sửa trong `ai_engine.py` (class `chess_ai`)
-- **Muốn thêm chế độ chơi:** Sửa trong `chess_UX_UI.py` (class `ChessInterface`)
-- **Muốn thêm hình ảnh:** Thêm vào thư mục `images/` và cập nhật `load_images()`
+### enums.py
+- **Player (dòng 1):**  
+  Định nghĩa các giá trị hằng số cho người chơi (PLAYER_1, PLAYER_2, EMPTY) và tên quân cờ.  
+  **Sử dụng:**  
+  ```python
+  from enums import Player
+  if piece.get_player() == Player.PLAYER_1:
+      # xử lý cho quân trắng
+  ```
 
 ---
 
-## 6. Giải thích chi tiết thuật toán Minimax & Alpha-Beta Pruning
+### Piece.py
+- **Piece (dòng 9):**  
+  Lớp cha cho tất cả quân cờ, chứa các thuộc tính và phương thức chung.
+  - `__init__` (dòng 15): Khởi tạo quân cờ với tên, vị trí, người sở hữu.
+  - `get_row_number` (dòng 30): Trả về số hàng hiện tại của quân cờ.
+  - `get_col_number` (dòng 34): Trả về số cột hiện tại của quân cờ.
+  - `get_name` (dòng 38): Trả về tên quân cờ.
+  - `get_player` (dòng 42): Trả về người sở hữu quân cờ.
+  - `get_valid_peaceful_moves(game_state)`: Trả về danh sách các ô có thể di chuyển mà không ăn quân.
+  - `get_valid_piece_takes(game_state)`: Trả về danh sách các ô có thể ăn quân.
+  - `get_valid_piece_moves(game_state)`: Trả về tất cả nước đi hợp lệ (kết hợp peaceful và takes).
 
-### 6.1. Minimax là gì?
+  **Ví dụ sử dụng:**
+  ```python
+  piece = Piece("p", 6, 0, Player.PLAYER_1)
+  moves = piece.get_valid_piece_moves(game_state)
+  ```
 
-- **Minimax** là thuật toán giúp AI chọn nước đi tốt nhất bằng cách giả lập mọi khả năng tiếp theo, giả định đối thủ cũng chơi tối ưu.
-- **Ý tưởng:**  
-  - AI (max) chọn nước đi để điểm số bàn cờ là lớn nhất.
-  - Đối thủ (min) chọn nước đi để điểm số bàn cờ là nhỏ nhất.
-- **Ví dụ thực tế:**  
-  - Giống như chơi cờ caro, bạn luôn chọn nước đi khiến đối thủ khó thắng nhất.
-
-### 6.2. Alpha-Beta Pruning là gì?
-
-- **Alpha-Beta Pruning** là kỹ thuật tối ưu cho Minimax, giúp bỏ qua những nhánh không cần thiết, tăng tốc độ tính toán.
-- **Alpha:** Giá trị lớn nhất mà max (AI) chắc chắn đạt được.
-- **Beta:** Giá trị nhỏ nhất mà min (đối thủ) chắc chắn đạt được.
-- **Nếu tại một nhánh, beta ≤ alpha, thì không cần xét tiếp nhánh đó.**
-
-### 6.3. Cách hoạt động trên bàn cờ
-
-- **Hàm chính:**  
-  - `minimax_white` (dòng 16, [ai_engine.py](src/ai_engine.py))
-  - `minimax_black` (dòng 108, [ai_engine.py](src/ai_engine.py))
-- **Quy trình:**  
-  1. AI duyệt tất cả nước đi hợp lệ (hàm `get_all_legal_moves` ở [chess_engine.py](src/chess_engine.py)).
-  2. Với mỗi nước đi, AI giả lập bàn cờ mới, gọi đệ quy minimax cho đối thủ.
-  3. Đánh giá bàn cờ bằng hàm `evaluate_board`.
-  4. Sử dụng alpha-beta để cắt nhánh không cần thiết.
-  5. Trả về nước đi tốt nhất ở độ sâu gốc.
-
-**Ví dụ đơn giản:**  
-- Nếu AI là trắng, có thể ăn hậu đen hoặc đi nước phòng thủ. Minimax sẽ tính điểm cho từng trường hợp, chọn nước ăn hậu nếu điểm số cao nhất.
-
-### 6.4. Chế độ dễ/khó hoạt động thế nào?
-
-- **Chế độ dễ:** Độ sâu tìm kiếm nhỏ (ví dụ: depth = 1 hoặc 2). AI chỉ nhìn trước 1-2 nước, thường chọn nước đơn giản.
-- **Chế độ khó:** Độ sâu tìm kiếm lớn (ví dụ: depth = 3 hoặc 4). AI nhìn xa hơn, tính toán nhiều nhánh, chọn nước tối ưu hơn.
-
-**Ví dụ thực tế:**  
-- **Dễ:** AI chỉ ăn quân nếu có thể, không phòng thủ, dễ bị chiếu hết.
-- **Khó:** AI vừa ăn quân, vừa phòng thủ, tránh bị chiếu hết, có thể "bẫy" người chơi.
+- **Các class con:**  
+  - `Rook`, `Knight`, `Bishop`, `Pawn`, `Queen`, `King`:  
+    Mỗi class đều override các hàm di chuyển phù hợp với luật cờ vua cho từng loại quân.
 
 ---
 
-## 7. Chú thích từng dòng, từng class, từng hàm (ví dụ)
+### chess_engine.py
+- **game_state (dòng 28):**  
+  Quản lý trạng thái bàn cờ, các quân cờ, lượt chơi, kiểm tra luật.
+  - `__init__` (dòng 34): Khởi tạo trạng thái bàn cờ.
+  - `get_piece(row, col)` (dòng 139): Trả về quân cờ tại vị trí (row, col).
+  - `is_valid_piece(row, col)` (dòng 153): Kiểm tra xem vị trí có quân cờ hợp lệ không.
+  - `get_valid_moves(player)` (dòng 160): Trả về danh sách nước đi hợp lệ cho người chơi.
+  - `move_piece(from_row, from_col, to_row, to_col)` (dòng 365): Thực hiện nước đi.
+  - `undo_move()`: Hoàn tác nước đi trước.
+  - `checkmate_stalemate_checker()` (dòng 261): Kiểm tra trạng thái chiếu hết/hòa.
 
-**Ví dụ chú thích class và hàm trong `Piece.py`:**
-```python
-class Piece:
-    """Lớp cơ sở cho tất cả quân cờ, chứa các thuộc tính và phương thức chung."""
-    def __init__(self, name, row_number, col_number, player):
-        """Khởi tạo quân cờ với tên, vị trí, người sở hữu."""
-        self._name = name
-        self.row_number = row_number
-        self.col_number = col_number
-        self._player = player
-    ...
-```
-
----
-
-## 8. Hướng dẫn sử dụng
-
-### Cài đặt
-```bash
-pip install pygame
-```
-
-### Chạy game
-```bash
-python chesssetup.py
-```
-Hoặc chạy trực tiếp `chess_UX_UI.py` để vào menu chọn chế độ.
+  **Ví dụ sử dụng:**
+  ```python
+  gs = game_state()
+  valid_moves = gs.get_valid_moves(Player.PLAYER_1)
+  gs.move_piece(6, 0, 4, 0)
+  ```
 
 ---
 
-## 9. Liên hệ & đóng góp
+### ai_engine.py
+- **chess_ai (dòng 9):**  
+  Lớp AI sử dụng thuật toán minimax và alpha-beta pruning.
+  - `minimax_white(game_state, depth, alpha, beta, maximizing_player, player_color, root_depth=None)` (dòng 16):  
+    Tìm nước đi tốt nhất cho quân trắng.  
+    **Tham số:**  
+    - `game_state`: Trạng thái bàn cờ hiện tại  
+    - `depth`: Độ sâu tìm kiếm  
+    - `alpha`, `beta`: Giá trị cắt nhánh  
+    - `maximizing_player`: Đang là lượt AI hay đối thủ  
+    - `player_color`: Màu quân AI  
+    - `root_depth`: Độ sâu gốc (dùng để trả về nước đi thay vì điểm số)
+  - `minimax_black(...)` (dòng 108): Tương tự cho quân đen.
+  - `evaluate_board(game_state)` (dòng 192): Đánh giá điểm số bàn cờ hiện tại.
+  - `get_piece_value(piece)` (dòng 209): Trả về giá trị điểm số của quân cờ.
 
-- Nếu có ý tưởng nâng cấp, vui lòng tạo Pull Request hoặc Issue trên GitHub.
-- Tác giả: [Tên nhóm/Thành viên]
+  **Ví dụ sử dụng:**
+  ```python
+  ai = chess_ai()
+  best_move = ai.minimax_white(gs, depth=3, alpha=-float('inf'), beta=float('inf'), maximizing_player=True, player_color=Player.PLAYER_1)
+  ```
 
 ---
+
+### chess_gui.py
+- **load_images() (dòng 34):**  
+  Tải hình ảnh cho các quân cờ từ thư mục images.
+- **draw_game_state(screen, game_state, valid_moves, square_selected, ...) (dòng 46):**  
+  Vẽ bàn cờ, quân cờ, highlight nước đi, lịch sử, v.v.
+- **draw_squares(screen, board_flipped=False) (dòng 102):**  
+  Vẽ các ô bàn cờ.
+- **draw_pieces(screen, game_state, board_flipped=False) (dòng 115):**  
+  Vẽ các quân cờ lên bàn cờ.
+- **highlight_square(screen, game_state, valid_moves, square_selected, board_flipped=False) (dòng 129):**  
+  Highlight ô được chọn và các nước đi hợp lệ.
+- **main(game_mode, player_color=None, difficulty=None) (dòng 158):**  
+  Hàm khởi động giao diện Pygame, xử lý sự kiện chính.
+- **draw_sidebar(screen, ...) (dòng 607):**  
+  Vẽ cột bên phải: thời gian, nút đầu hàng, độ khó, v.v.
+
+  **Ví dụ sử dụng:**
+  ```python
+  draw_game_state(screen, gs, valid_moves, square_selected)
+  ```
+
+---
+
+### chess_UX_UI.py
+- **ChessInterface (dòng 6):**  
+  Lớp giao diện khởi động (Tkinter).
+  - `__init__` (dòng 7): Khởi tạo giao diện.
+  - `load_background_image()` (dòng 35): Tải hình nền.
+  - `create_choice_buttons()` (dòng 54): Tạo các nút chọn chế độ chơi.
+  - `on_resize()` (dòng 101): Xử lý khi cửa sổ thay đổi kích thước.
+  - `button_clicked_solo()` (dòng 176): Xử lý khi chọn chơi solo.
+  - `button_clicked_AI()` (dòng 188): Xử lý khi chọn chơi với AI.
+  - `show_color_selection_screen()` (dòng 192): Hiển thị màn hình chọn màu quân.
+  - `select_color_and_show_difficulty()` (dòng 264): Chọn màu quân và hiển thị chọn độ khó.
+  - `show_difficulty_selection_screen()` (dòng 269): Hiển thị màn hình chọn độ khó.
+  - `select_difficulty_and_start()` (dòng 342): Chọn độ khó và bắt đầu game.
+  - `show_confirm_popup()` (dòng 354): Hiển thị popup xác nhận.
+  - `start_ai_game()` (dòng 389): Bắt đầu game với AI.
+  - `back_to_main_menu()` (dòng 403): Quay lại menu chính.
+  - `button_clicked_exit()` (dòng 423): Xử lý khi nhấn nút thoát.
+  - `run()` (dòng 428): Chạy giao diện Tkinter.
+
+  **Ví dụ sử dụng:**
+  ```python
+  app = ChessInterface()
+  app.run()
+  ```
+
+---
+
+### chesssetup.py
+- **Khởi động nhanh:**  
+  Chỉ cần chạy file này để vào giao diện chính.
+  ```python
+  from chess_UX_UI import ChessInterface
+
+  if __name__ == "__main__":
+      app = ChessInterface()
+      app.run()
+  ```
+
+---
+
+### requirements.txt
+- **Cài đặt thư viện:**  
+  Chạy lệnh sau để cài đặt các thư viện cần thiết:
+  ```bash
+  pip install -r requirements.txt
+  ```
+
+---
+
+**Lưu ý:**  
+- Khi sử dụng các hàm, luôn truyền đúng kiểu dữ liệu và trạng thái hiện tại của game.
+- Có thể tham khảo thêm docstring trong từng file để hiểu chi tiết hơn về từng hàm.
 
 
