@@ -249,9 +249,9 @@ src/
   - `select_difficulty_and_start()` (dòng 342): Chọn độ khó và bắt đầu game.
   - `show_confirm_popup()` (dòng 354): Hiển thị popup xác nhận.
   - `start_ai_game()` (dòng 389): Bắt đầu game với AI.
-  - `back_to_main_menu()` (dòng 403): Quay lại menu chính.
-  - `button_clicked_exit()` (dòng 423): Xử lý khi nhấn nút thoát.
-  - `run()` (dòng 428): Chạy giao diện Tkinter.
+  - `back_to_main_menu()` (dòng 403)
+  - `button_clicked_exit()` (dòng 423)
+  - `run()` (dòng 428)
 
   **Ví dụ sử dụng:**
   ```python
@@ -283,8 +283,251 @@ src/
 
 ---
 
+## 4. Giải thích chi tiết thuật toán AI: Minimax & Alpha-Beta Pruning
+
+### 4.1. Tổng quan hoạt động
+
+Khi đến lượt AI, thuật toán sẽ duyệt qua tất cả các nước đi hợp lệ, giả lập từng trạng thái bàn cờ mới, đánh giá điểm số, và chọn nước đi tối ưu nhất dựa trên việc giả định đối thủ cũng sẽ chơi tối ưu.
+
+---
+
+### 4.2. Biểu đồ luồng hoạt động thuật toán Minimax
+
+```
+Lượt AI (Max)
+│
+├─ Nước đi 1
+│   ├─ Đối thủ (Min) nước đi 1.1
+│   │   ├─ AI (Max) nước đi 1.1.1
+│   │   └─ AI (Max) nước đi 1.1.2
+│   └─ Đối thủ (Min) nước đi 1.2
+│       ├─ AI (Max) nước đi 1.2.1
+│       └─ AI (Max) nước đi 1.2.2
+│
+├─ Nước đi 2
+│   ├─ Đối thủ (Min) nước đi 2.1
+│   │   ├─ AI (Max) nước đi 2.1.1
+│   │   └─ AI (Max) nước đi 2.1.2
+│   └─ Đối thủ (Min) nước đi 2.2
+│       ├─ AI (Max) nước đi 2.2.1
+│       └─ AI (Max) nước đi 2.2.2
+│
+...
+```
+
+- **Max:** AI chọn điểm số lớn nhất.
+- **Min:** Đối thủ chọn điểm số nhỏ nhất.
+- Độ sâu của cây là số lượt nhìn trước (depth).
+
+---
+
+### 4.3. Biểu đồ cắt nhánh Alpha-Beta
+
+```
+           AI (Max)
+          /      \
+      5           ?
+    /   \       /   \
+   3     5     2     4
+  / \   / \   / \   / \
+ 3  3  5  5  2  2  4  4
+
+Nếu nhánh bên trái đã có điểm số 5 (alpha), khi duyệt nhánh bên phải, nếu điểm số nhỏ hơn 5 (beta <= alpha), thuật toán sẽ bỏ qua các nhánh còn lại.
+```
+
+---
+
+### 4.4. Quy trình áp dụng vào bàn cờ
+
+1. **Lấy trạng thái bàn cờ hiện tại.**
+2. **Duyệt tất cả nước đi hợp lệ của AI.**
+3. **Với mỗi nước đi:**
+   - Giả lập trạng thái mới.
+   - Gọi đệ quy minimax cho đối thủ.
+   - Đánh giá điểm số bàn cờ bằng hàm `evaluate_board`.
+   - Sử dụng alpha-beta để cắt nhánh không cần thiết.
+4. **Chọn nước đi có điểm số tối ưu nhất.**
+
+---
+
+### 4.5. Ví dụ minh họa trực quan với icon quân cờ
+
+#### Ví dụ: AI là trắng, có 2 quân tốt ♙, đen có 1 quân tốt ♟
+
+**Bàn cờ ban đầu:**
+
+```
++---+---+---+
+| ♙ |   | ♙ |
++---+---+---+
+|   | ♟ |   |
++---+---+---+
+```
+
+**Bước 1 (AI - Max):**
+- AI có thể:
+  - Di chuyển ♙ bên trái lên (Nước đi A)
+  - Di chuyển ♙ bên phải sang phải (Nước đi B)
+
+```
+        [Bàn cờ ban đầu]
+             |
+      +------+------+
+      |             |
+[Nước đi A]   [Nước đi B]
+  ♙ tiến lên   ♙ sang phải
+      |             |
+      v             v
++---+---+---+   +---+---+---+
+|   |   | ♙ |   | ♙ |   |   |
++---+---+---+   +---+---+---+
+| ♙ | ♟ |   |   |   | ♟ | ♙ |
++---+---+---+   +---+---+---+
+```
+
+**Bước 2 (Đen - Min):**
+- Đen đáp trả bằng cách di chuyển ♟ hoặc ăn quân trắng nếu có thể.
+
+---
+
+### 4.6. Sơ đồ cây cho các chế độ AI
+
+#### Chế độ dễ (depth = 1):
+
+```
+[AI] ♙ ♙ vs ♟
+  |
+  +--Nước đi A--> [Đánh giá điểm số]
+  +--Nước đi B--> [Đánh giá điểm số]
+=> Chọn nước đi có điểm số cao nhất ở lượt đầu tiên.
+```
+
+#### Chế độ trung bình (depth = 2):
+
+```
+[AI] ♙ ♙ vs ♟
+  |
+  +--Nước đi A--> [Đen đáp trả] --Đánh giá điểm số-->
+  +--Nước đi B--> [Đen đáp trả] --Đánh giá điểm số-->
+=> Xem xét cả nước đi của đối thủ, chọn nước đi tối ưu hơn.
+```
+
+#### Chế độ khó (depth = 3+):
+
+```
+[AI] ♙ ♙ vs ♟
+  |
+  +--Nước đi A--> [Đen đáp trả] --> [AI tiếp tục] --Đánh giá điểm số-->
+  +--Nước đi B--> [Đen đáp trả] --> [AI tiếp tục] --Đánh giá điểm số-->
+=> Xem xét nhiều lượt, có thể tạo bẫy hoặc phòng thủ sâu hơn.
+```
+
+---
+
+### 4.7. Alpha-Beta Pruning minh họa
+
+```
+[AI] ♙ ♙ vs ♟
+  |
+  +--Nước đi 1 (alpha = 3)
+  |     |
+  |     +--Đen đáp trả (beta = 2)  <-- bị cắt nhánh vì beta < alpha
+  |
+  +--Nước đi 2 (alpha = 3)
+        |
+        +--Đen đáp trả (beta = 4)
+```
+
+---
+
+### 4.8. Ví dụ chi tiết về thuật toán Minimax & Alpha-Beta Pruning trong AI cờ vua
+
+#### Ví dụ 1: AI chọn nước đi tốt nhất (Minimax cơ bản)
+
+Giả sử bàn cờ chỉ còn 2 quân tốt trắng và 1 quân tốt đen, AI là trắng. Trắng có 2 lựa chọn:
+- **Nước đi A:** Tiến tốt lên, có thể ăn tốt đen ở lượt sau.
+- **Nước đi B:** Di chuyển tốt sang ngang, không tạo ra lợi thế.
+
+Thuật toán Minimax sẽ:
+1. Duyệt cả 2 nước đi.
+2. Giả lập trạng thái bàn cờ sau mỗi nước đi.
+3. Đánh giá điểm số (ví dụ: ăn được tốt đen thì +1 điểm).
+4. Chọn nước đi có điểm số cao nhất.
+
+**Mã minh họa:**
+```python
+ai = chess_ai()
+best_move = ai.minimax_white(gs, depth=2, alpha=-float('inf'), beta=float('inf'), maximizing_player=True, player_color=Player.PLAYER_1)
+gs.move_piece(*best_move)
+```
+
+---
+
+#### Ví dụ 2: Alpha-Beta Pruning giúp tăng tốc
+
+Giả sử AI đã tìm được một nhánh có điểm số là +3 (alpha). Khi duyệt các nhánh khác, nếu điểm số của đối thủ (beta) nhỏ hơn +3, thuật toán sẽ bỏ qua các nhánh đó vì đối thủ sẽ không chọn.
+
+**Biểu đồ minh họa:**
+```
+AI (Max)
+│
+├─ Nước đi 1 (alpha = 3)
+│   └─ Đối thủ (Min) nước đi 1.1 (beta = 2)  ← bị cắt nhánh vì beta < alpha
+│
+├─ Nước đi 2 (alpha = 3)
+│   └─ Đối thủ (Min) nước đi 2.1 (beta = 4)
+```
+
+---
+
+#### Ví dụ 3: Điều chỉnh độ khó AI
+
+- **Chế độ dễ:** AI chỉ nhìn trước 1 nước đi (depth = 1), thường chỉ ăn quân nếu có thể, không phòng thủ.
+- **Chế độ khó:** AI nhìn trước 3-4 nước đi (depth = 3 hoặc 4), vừa ăn quân vừa phòng thủ, tránh bị chiếu hết.
+
+**Mã minh họa:**
+```python
+# AI dễ
+best_move = ai.minimax_white(gs, depth=1, alpha=-float('inf'), beta=float('inf'), maximizing_player=True, player_color=Player.PLAYER_1)
+
+# AI khó
+best_move = ai.minimax_white(gs, depth=4, alpha=-float('inf'), beta=float('inf'), maximizing_player=True, player_color=Player.PLAYER_1)
+```
+
+---
+
+#### Ví dụ 4: AI phòng thủ trước nước chiếu hết
+
+Giả sử đối thủ chuẩn bị chiếu hết, AI sẽ dùng Minimax để tìm nước đi ngăn chặn chiếu hết thay vì chỉ ăn quân.
+
+**Mã minh họa:**
+```python
+# Trạng thái bàn cờ: Đen chuẩn bị chiếu hết trắng
+best_move = ai.minimax_white(gs, depth=3, alpha=-float('inf'), beta=float('inf'), maximizing_player=True, player_color=Player.PLAYER_1)
+# AI sẽ chọn nước đi giúp vua trắng thoát khỏi chiếu hết
+gs.move_piece(*best_move)
+```
+
+---
+
+#### Ví dụ 5: AI tạo bẫy cho đối thủ
+
+Ở chế độ khó, AI có thể "nhử" đối thủ ăn quân để sau đó chiếu hết hoặc lấy lợi thế.
+
+**Mã minh họa:**
+```python
+# Trạng thái bàn cờ: AI có thể hy sinh quân nhỏ để dụ đối thủ vào thế chiếu hết
+best_move = ai.minimax_white(gs, depth=4, alpha=-float('inf'), beta=float('inf'), maximizing_player=True, player_color=Player.PLAYER_1)
+gs.move_piece(*best_move)
+```
+
+---
+
 **Lưu ý:**  
-- Khi sử dụng các hàm, luôn truyền đúng kiểu dữ liệu và trạng thái hiện tại của game.
-- Có thể tham khảo thêm docstring trong từng file để hiểu chi tiết hơn về từng hàm.
+- Các ví dụ trên đều sử dụng hàm `minimax_white` hoặc `minimax_black` trong `ai_engine.py`.
+- Để kiểm tra kết quả, hãy in ra trạng thái bàn cờ sau khi AI thực hiện nước đi.
+- Có thể thay đổi độ sâu (`depth`) để kiểm tra sự khác biệt giữa các chế độ AI.
+
+---
 
 
