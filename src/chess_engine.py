@@ -982,5 +982,14 @@ class chess_move():
         self.en_passant_eaten_piece = eaten_piece
         self.en_passant_eaten_square = eaten_piece_square
 
+    def get_captured_piece(self):
+        # Nếu là nước en passant, trả về quân bị ăn qua đường en passant
+        if self.en_passaned and self.en_passant_eaten_piece is not None:
+            return self.en_passant_eaten_piece
+        # Nếu là nước đi thường, trả về quân bị ăn ở ô đích
+        if self.removed_piece is not None and self.removed_piece != Player.EMPTY:
+            return self.removed_piece
+        return None
+
     def get_moving_piece(self):
         return self.moving_piece

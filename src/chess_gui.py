@@ -378,7 +378,7 @@ def main(game_mode, player_color=None, difficulty=None):
                                 valid_moves = []
                     else:
                         # Kiểm tra click vào nút đầu hàng
-                        button_rect = py.Rect(BOARD_WIDTH + 30, 150, SIDEBAR_WIDTH - 60, 50)
+                        button_rect, hint_button_rect = draw_sidebar(screen, game_start_time, surrendered, game_over, game_end_time, number_of_players, difficulty)
                         if button_rect and button_rect.collidepoint(location) and not surrendered and not game_over:
                             surrendered = True
                             game_over = True
@@ -492,6 +492,9 @@ def main(game_mode, player_color=None, difficulty=None):
 
         # Vẽ cột bên phải với bảng thời gian và nút đầu hàng, nhận lại vùng click thực tế
         button_rect, hint_button_rect = draw_sidebar(screen, game_start_time, surrendered, game_over, game_end_time, number_of_players, difficulty)
+
+        # VẼ HƯỚNG DẪN PHÍM TẮT
+        # draw_controls(screen) # This line is removed as per the edit hint
 
         # Vẽ move history
         draw_move_history(screen, game_state.move_log, number_of_players == 1, move_times, scroll_offset, game_over, board_flipped)
@@ -673,11 +676,12 @@ def draw_sidebar(screen, start_time, surrendered, game_over, game_end_time, numb
 
     # --- Vẽ khuôn mặt động ---
     # Xác định độ khó (nếu có)
-    face_size = 64  # Đường kính hình tròn lớn hơn
-    pixel_size = 6  # Mỗi pixel của mặt
-    face_y = time_box_rect.bottom + 12  # Cách khung thời gian 12px
-    face_x = sidebar_left + SIDEBAR_WIDTH // 2 - face_size // 2
-    face_surface = py.Surface((face_size, face_size), py.SRCALPHA)
+    face_size = int(SIDEBAR_WIDTH * 0.45)  # Giảm còn 45% sidebar
+    face_height = int(face_size * 4 / 3)   # Tỉ lệ 3:4
+    pixel_size = max(8, face_size // 10)   # Pixel lớn hơn cho mặt
+    face_y = time_box_rect.bottom + pixel_size  # Cách timer đúng bằng 1 ô nhỏ của khuôn mặt
+    face_x = sidebar_left + (SIDEBAR_WIDTH - face_size) // 2
+    face_surface = py.Surface((face_size, face_height), py.SRCALPHA)
     mx, my = py.mouse.get_pos()
     if difficulty == 'easy':
         draw_baby_face(face_surface, mx, my, 0, 0, pixel_size=pixel_size, abs_x=face_x, abs_y=face_y)
@@ -686,6 +690,9 @@ def draw_sidebar(screen, start_time, surrendered, game_over, game_end_time, numb
     elif difficulty == 'hard':
         draw_old_face(face_surface, mx, my, 0, 0, pixel_size=pixel_size, abs_x=face_x, abs_y=face_y)
     screen.blit(face_surface, (face_x, face_y))
+
+    # Đặt các nút bắt đầu từ dưới khuôn mặt, chỉ cách 1 ô pixel_size
+    button_y_start = face_y + face_height + pixel_size  # Cách khuôn mặt đúng 1 ô pixel
 
     # Vẽ nút đầu hàng
     surrender_font = py.font.SysFont("Arial", 20, True, False)
@@ -697,8 +704,7 @@ def draw_sidebar(screen, start_time, surrendered, game_over, game_end_time, numb
         button_color = (220, 50, 50)
         text_color = (255, 255, 255)
         button_text = "Loser"
-    # Đặt nút đầu hàng sát hơn với mặt, cách mặt 6px
-    button_rect = py.Rect(sidebar_left + 30, face_y + face_size + 6, SIDEBAR_WIDTH - 60, 50)  # Sát mặt hơn
+    button_rect = py.Rect(sidebar_left + 30, button_y_start, SIDEBAR_WIDTH - 60, 50)
     py.draw.rect(screen, button_color, button_rect)
     py.draw.rect(screen, (0, 0, 0), button_rect, 2)
     surrender_surface = surrender_font.render(button_text, True, text_color)
@@ -708,15 +714,23 @@ def draw_sidebar(screen, start_time, surrendered, game_over, game_end_time, numb
     # Vẽ nút Hint nếu chơi với AI
     if number_of_players == 1 and not game_over:
         hint_font = py.font.SysFont("Arial", 20, True, False)
-        # Đặt nút Hint sát hơn với nút đầu hàng, chỉ cách 8px
         hint_button_rect = py.Rect(sidebar_left + 30, button_rect.bottom + 8, SIDEBAR_WIDTH - 60, 50)
         py.draw.rect(screen, (50, 205, 50), hint_button_rect)
         py.draw.rect(screen, (0, 128, 0), hint_button_rect, 2)
         hint_text = hint_font.render("Hint", True, (255, 255, 255))
         hint_text_rect = hint_text.get_rect(center=hint_button_rect.center)
         screen.blit(hint_text, hint_text_rect)
+        keys_y = hint_button_rect.bottom + 12
     else:
         hint_button_rect = None
+        keys_y = button_rect.bottom + 12
+    # Vẽ hướng dẫn phím tắt
+    font_label = py.font.SysFont("Arial", 14, True, False)
+    font_key = py.font.SysFont("Arial", 14, True, False)
+    # Keys:    R: Reset
+    screen.blit(font_label.render("Keys:    R: Reset", True, (0,0,0)), (sidebar_left + 30, keys_y))
+    #          U: Undo (thụt vào 8*2=16px)
+    screen.blit(font_key.render("U: Undo", True, (0,0,0)), (sidebar_left + 30 + 48, keys_y + 22))
     return button_rect, hint_button_rect
 
 def draw_end_game_buttons(screen):
@@ -770,7 +784,7 @@ def draw_move_history(screen, move_log, ai_mode, move_times, scroll_offset, game
     # Vẽ khung textbox
     sidebar_left = PADDING_LEFT + BOARD_WIDTH
     box_x = sidebar_left + 20
-    box_y = 380  # Dưới các phím tắt
+    box_y = 420  # Đẩy lịch sử nước đi xuống để không che keys
     box_w = SIDEBAR_WIDTH - 40
     box_h = 160  # Kích thước nhỏ lại như ban đầu
     box_rect = py.Rect(box_x, box_y, box_w, box_h)
@@ -804,11 +818,15 @@ def draw_move_history(screen, move_log, ai_mode, move_times, scroll_offset, game
             m = t // 60
             s = t % 60
             move_str += f"  {m}m{s}s"
+        # Nếu là nước phong cấp tốt, hiển thị thêm vn pawn => queen/rook/bishop/knight
+        if hasattr(move, 'pawn_promoted') and move.pawn_promoted and hasattr(move, 'replacement_piece') and move.replacement_piece is not None:
+            promoted_name = piece_full.get(move.replacement_piece.get_name().upper(), move.replacement_piece.get_name().capitalize())
+            move_str += f"   pawn => {promoted_name.lower()}"
         # Nếu có ăn quân, hiển thị theo định dạng Attacker(Captured) cách 5 dấu cách
         captured_piece = move.get_captured_piece() if hasattr(move, 'get_captured_piece') else None
-        if captured_piece is not None and captured_piece != None and hasattr(captured_piece, 'get_name') and captured_piece.get_name().upper() != '':
+        if captured_piece and hasattr(captured_piece, 'get_name'):
             captured_name = piece_full.get(captured_piece.get_name().upper(), captured_piece.get_name().capitalize())
-            move_str += '     "' + piece_name + '(' + captured_name + ')"'  # 5 dấu cách
+            move_str += f' "{piece_name}({captured_name})"'
         if ai_mode and ((color == 'white' and idx % 2 == 1) or (color == 'black' and idx % 2 == 0)):
             move_str += " (AI)"
         # Tự động xuống dòng nếu quá dài

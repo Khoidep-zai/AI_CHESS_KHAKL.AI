@@ -19,6 +19,14 @@ class ChessInterface:
         self.button_solo = None
         self.button_play_with_AI = None
         self.button_exit = None
+        # Khởi tạo các biến nút cho các màn hình khác
+        self.button_white = None
+        self.button_black = None
+        self.button_back = None
+        self.button_easy = None
+        self.button_medium = None
+        self.button_hard = None
+        self.button_back2 = None
         self._resize_job = None
         self.current_screen = 'main_menu'  # Trạng thái màn hình hiện tại
 
@@ -125,54 +133,77 @@ class ChessInterface:
             title_font_size = max(20, min(int(height / 15), 60))
             self.canvas.itemconfig("title", font=("Gill Sans Nova Ultra Bold", title_font_size, "bold"))
             self.canvas.coords("title", width / 2, height * 0.4)
-            # Cập nhật các nút
+            # Cập nhật các nút - kiểm tra sự tồn tại trước khi cập nhật
             button_font_size = max(8, min(int(height / 40), 16))
             button_y = height * 0.60
             button_spacing = width / 5.5
             button_font = ("Arial", button_font_size, "bold")
-            self.button_solo.config(font=button_font)
-            self.button_play_with_AI.config(font=button_font)
-            self.button_exit.config(font=button_font)
+            if hasattr(self, 'button_solo') and self.button_solo:
+                self.button_solo.config(font=button_font)
+            if hasattr(self, 'button_play_with_AI') and self.button_play_with_AI:
+                self.button_play_with_AI.config(font=button_font)
+            if hasattr(self, 'button_exit') and self.button_exit:
+                self.button_exit.config(font=button_font)
             center_x = width / 2
-            self.canvas.coords("solo_button", center_x - button_spacing, button_y)
-            self.canvas.coords("ai_button", center_x, button_y)
-            self.canvas.coords("exit_button", center_x + button_spacing, button_y)
+            # Kiểm tra sự tồn tại của các tag trước khi cập nhật vị trí
+            if self.canvas.find_withtag("solo_button"):
+                self.canvas.coords("solo_button", center_x - button_spacing, button_y)
+            if self.canvas.find_withtag("ai_button"):
+                self.canvas.coords("ai_button", center_x, button_y)
+            if self.canvas.find_withtag("exit_button"):
+                self.canvas.coords("exit_button", center_x + button_spacing, button_y)
         elif self.current_screen == 'color_select':
             # Cập nhật tiêu đề
             title_font_size = max(20, min(int(height / 15), 60))
             self.canvas.itemconfig("color_title", font=("Gill Sans Nova Ultra Bold", title_font_size, "bold"))
             self.canvas.coords("color_title", width / 2, height * 0.3)
-            # Cập nhật các nút
+            # Cập nhật các nút - kiểm tra sự tồn tại trước khi cập nhật
             button_font_size = max(8, min(int(height / 40), 16))
             button_font = ("Arial", button_font_size, "bold")
-            self.button_white.config(font=button_font)
-            self.button_black.config(font=button_font)
-            self.button_back.config(font=button_font)
+            if hasattr(self, 'button_white') and self.button_white:
+                self.button_white.config(font=button_font)
+            if hasattr(self, 'button_black') and self.button_black:
+                self.button_black.config(font=button_font)
+            if hasattr(self, 'button_back') and self.button_back:
+                self.button_back.config(font=button_font)
             center_x = width / 2
             button_y = height * 0.6
             button_spacing = width / 6
-            self.canvas.coords("white_button", center_x - button_spacing, button_y)
-            self.canvas.coords("black_button", center_x + button_spacing, button_y)
-            self.canvas.coords("back_button", center_x, button_y + 80)
+            # Kiểm tra sự tồn tại của các tag trước khi cập nhật vị trí
+            if self.canvas.find_withtag("white_button"):
+                self.canvas.coords("white_button", center_x - button_spacing, button_y)
+            if self.canvas.find_withtag("black_button"):
+                self.canvas.coords("black_button", center_x + button_spacing, button_y)
+            if self.canvas.find_withtag("back_button"):
+                self.canvas.coords("back_button", center_x, button_y + 80)
         elif self.current_screen == 'difficulty_select':
             # Cập nhật tiêu đề
             title_font_size = max(20, min(int(height / 15), 60))
             self.canvas.itemconfig("difficulty_title", font=("Gill Sans Nova Ultra Bold", title_font_size, "bold"))
             self.canvas.coords("difficulty_title", width / 2, height * 0.3)
-            # Cập nhật các nút
+            # Cập nhật các nút - kiểm tra sự tồn tại trước khi cập nhật
             button_font_size = max(8, min(int(height / 40), 16))
             button_font = ("Arial", button_font_size, "bold")
-            self.button_easy.config(font=button_font)
-            self.button_medium.config(font=button_font)
-            self.button_hard.config(font=button_font)
-            self.button_back2.config(font=button_font)
+            if hasattr(self, 'button_easy') and self.button_easy:
+                self.button_easy.config(font=button_font)
+            if hasattr(self, 'button_medium') and self.button_medium:
+                self.button_medium.config(font=button_font)
+            if hasattr(self, 'button_hard') and self.button_hard:
+                self.button_hard.config(font=button_font)
+            if hasattr(self, 'button_back2') and self.button_back2:
+                self.button_back2.config(font=button_font)
             center_x = width / 2
             button_y = height * 0.6
             button_spacing = width / 4.5
-            self.canvas.coords("easy_button", center_x - button_spacing, button_y)
-            self.canvas.coords("medium_button", center_x, button_y)
-            self.canvas.coords("hard_button", center_x + button_spacing, button_y)
-            self.canvas.coords("back2_button", center_x, button_y + 80)
+            # Kiểm tra sự tồn tại của các tag trước khi cập nhật vị trí
+            if self.canvas.find_withtag("easy_button"):
+                self.canvas.coords("easy_button", center_x - button_spacing, button_y)
+            if self.canvas.find_withtag("medium_button"):
+                self.canvas.coords("medium_button", center_x, button_y)
+            if self.canvas.find_withtag("hard_button"):
+                self.canvas.coords("hard_button", center_x + button_spacing, button_y)
+            if self.canvas.find_withtag("back2_button"):
+                self.canvas.coords("back2_button", center_x, button_y + 80)
 
     def button_clicked_solo(self):
         # Chuyển đến chế độ chơi solo (2 người chơi)
@@ -196,6 +227,15 @@ class ChessInterface:
         self.selected_difficulty = None
         # Xóa tất cả các widget hiện tại
         self.canvas.delete("all")
+        # Xóa các biến nút cũ để tránh lỗi
+        if hasattr(self, 'button_easy'):
+            self.button_easy = None
+        if hasattr(self, 'button_medium'):
+            self.button_medium = None
+        if hasattr(self, 'button_hard'):
+            self.button_hard = None
+        if hasattr(self, 'button_back2'):
+            self.button_back2 = None
         
         # Tải lại ảnh nền
         if self.original_background_image:
@@ -270,6 +310,13 @@ class ChessInterface:
     def show_difficulty_selection_screen(self):
         self.current_screen = 'difficulty_select'  # Đánh dấu đang ở màn hình chọn độ khó
         self.canvas.delete("all")
+        # Xóa các biến nút cũ để tránh lỗi
+        if hasattr(self, 'button_white'):
+            self.button_white = None
+        if hasattr(self, 'button_black'):
+            self.button_black = None
+        if hasattr(self, 'button_back'):
+            self.button_back = None
         # Tải lại ảnh nền
         if self.original_background_image:
             width = self.canvas.winfo_width()
@@ -405,6 +452,21 @@ class ChessInterface:
         """Quay lại màn hình chính."""
         # Xóa tất cả các widget hiện tại
         self.canvas.delete("all")
+        # Xóa các biến nút cũ để tránh lỗi
+        if hasattr(self, 'button_white'):
+            self.button_white = None
+        if hasattr(self, 'button_black'):
+            self.button_black = None
+        if hasattr(self, 'button_back'):
+            self.button_back = None
+        if hasattr(self, 'button_easy'):
+            self.button_easy = None
+        if hasattr(self, 'button_medium'):
+            self.button_medium = None
+        if hasattr(self, 'button_hard'):
+            self.button_hard = None
+        if hasattr(self, 'button_back2'):
+            self.button_back2 = None
         
         # Tải lại ảnh nền
         if self.original_background_image:
