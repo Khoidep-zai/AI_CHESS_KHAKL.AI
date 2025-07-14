@@ -10,9 +10,10 @@
 - [3. Cấu trúc dự án](#3-cấu-trúc-dự-án)
 - [4. Giải thích thuật toán AI](#4-giải-thích-thuật-toán-ai)
 - [5. Cách thuật toán hoạt động trên bàn cờ vua](#5-cách-thuật-toán-hoạt-động-trên-bàn-cờ-vua)
-- [6. Giao diện và trải nghiệm người dùng](#6-giao-diện-và-trải-nghiệm-người-dùng)
-- [7. Demo vẽ khuôn mặt pixel](#7-demo-vẽ-khuôn-mặt-pixel)
-- [8. Đóng góp và phát triển](#8-đóng-góp-và-phát-triển)
+- [6. Câu hỏi thường gặp (FAQ)](#6-câu-hỏi-thường-gặp-faq)
+- [7. Giao diện và trải nghiệm người dùng](#7-giao-diện-và-trải-nghiệm-người-dùng)
+- [8. Demo vẽ khuôn mặt pixel](#8-demo-vẽ-khuôn-mặt-pixel)
+- [9. Đóng góp và phát triển](#9-đóng-góp-và-phát-triển)
 
 ---
 
@@ -1073,13 +1074,196 @@ def display_move(self, start_array, end_array, piece):
 - 🎮 **Giao diện:** Hiển thị vị trí quân cờ cho người chơi
 - 💾 **Lưu trữ:** Lưu game theo chuẩn quốc tế
 
+### 5.7. AI "Nhìn Trước" Các Bước - Giải Thích Chi Tiết
+
+> **💡 Lưu ý cho người không biết code:** Phần này giải thích chi tiết về việc AI "nhìn trước" 1, 2, 3, 4 bước trong thuật toán minimax và tại sao điều này quan trọng.
+
+#### **🔍 Độ Sâu Tìm Kiếm (Search Depth)**
+
+Trong game cờ vua AI, "nhìn trước" có nghĩa là AI mô phỏng tất cả các tình huống có thể xảy ra trong tương lai để chọn nước đi tốt nhất. Độ sâu tìm kiếm được cài đặt theo độ khó:
+
+```python
+# Trong chess_gui.py
+if difficulty == 'easy':
+    ai_depth = 2      # AI nhìn trước 2 bước
+elif difficulty == 'medium':
+    ai_depth = 3      # AI nhìn trước 3 bước  
+elif difficulty == 'hard':
+    ai_depth = 4      # AI nhìn trước 4 bước
+
+# Gọi AI với độ sâu đã chọn
+ai_move = ai.minimax_white(game_state, ai_depth, -100000, 100000, True, Player.PLAYER_2, ai_depth)
+```
+
+#### **🌳 Cách AI "Nhìn Trước" Hoạt Động**
+
+**Ví dụ với Depth = 3 (AI nhìn trước 3 bước):**
+
+```
+AI (Lượt 1): "Nếu tôi đi nước này..."
+├── Bước 1: AI đi quân
+├── Bước 2: Người chơi phản ứng (AI giả định đối thủ chơi tốt nhất)
+└── Bước 3: AI đi tiếp (AI chọn nước đi tốt nhất cho mình)
+```
+
+**Ví dụ cụ thể:**
+```
+AI tính toán:
+├── Nước đi A: Di chuyển xe
+│   ├── Người chơi phản ứng: Bắt tốt
+│   ├── AI phản ứng: Bắt xe
+│   └── Điểm số: +50 (có lợi)
+├── Nước đi B: Di chuyển mã  
+│   ├── Người chơi phản ứng: Bắt mã
+│   ├── AI phản ứng: Bắt xe
+│   └── Điểm số: -30 (bất lợi)
+└── Nước đi C: Di chuyển hậu
+    ├── Người chơi phản ứng: Bắt hậu
+    ├── AI phản ứng: Bắt xe
+    └── Điểm số: -100 (rất bất lợi)
+
+→ AI chọn nước đi A vì có lợi nhất (+50 > -30 > -100)
+```
+
+#### **🧠 Thuật Toán Minimax Hoạt Động**
+
+**Code thực tế trong dự án:**
+```python
+def minimax_white(self, game_state, depth, alpha, beta, maximizing_player, player_color, root_depth=None):
+    # Điều kiện dừng: đạt độ sâu tối đa
+    if depth <= 0:
+        return self.evaluate_board(game_state, Player.PLAYER_1)
+    
+    if maximizing_player:  # Lượt của AI
+        max_evaluation = -10000000
+        for move_pair in all_possible_moves:
+            # Thực hiện nước đi
+            game_state.move_piece(move_pair[0], move_pair[1], True)
+            # Đánh giá nước đi này (đệ quy với depth-1)
+            evaluation = self.minimax_white(game_state, depth - 1, alpha, beta, False, "white", root_depth)
+            # Hoàn tác nước đi
+            game_state.undo_move()
+            
+            if max_evaluation < evaluation:
+                max_evaluation = evaluation
+                best_possible_move = move_pair
+```
+
+**Giải thích quy trình:**
+1. **AI thực hiện nước đi** → Mô phỏng tình huống mới
+2. **Đệ quy với depth-1** → "Nhìn" sâu hơn vào tương lai
+3. **Hoàn tác nước đi** → Quay lại trạng thái ban đầu
+4. **So sánh điểm số** → Chọn nước đi tốt nhất
+
+#### **🎯 Ví Dụ Minh Họa Cụ Thể**
+
+**Tình huống:** AI (quân trắng) có thể bắt xe của đối thủ
+
+**Với Depth = 3:**
+```
+AI: Bắt xe (+50 điểm)
+├── Người chơi: Bắt hậu (-100 điểm)  
+│   ├── AI: Bắt xe (+50 điểm)
+│   └── Tổng: -50 điểm
+└── Kết quả: -50 điểm
+
+AI: Di chuyển mã (0 điểm)
+├── Người chơi: Bắt tốt (-10 điểm)
+│   ├── AI: Bắt xe (+50 điểm)  
+│   └── Tổng: +40 điểm
+└── Kết quả: +40 điểm
+
+→ AI chọn: Di chuyển mã (vì +40 > -50)
+```
+
+**Tại sao cần "nhìn trước"?**
+
+**Không nhìn trước (Depth = 1):**
+- AI chỉ thấy: "Bắt xe = +50 điểm" 
+- AI chọn bắt xe ngay lập tức
+- **Kết quả:** Bị mất hậu, thua cuộc
+
+**Nhìn trước (Depth = 3):**
+- AI thấy: "Bắt xe → bị mất hậu → tổng -50 điểm"
+- AI thấy: "Di chuyển mã → bắt tốt → bắt xe → tổng +40 điểm"
+- **Kết quả:** Chọn di chuyển mã, có lợi hơn
+
+#### **⚡ Alpha-Beta Pruning Tối Ưu Hóa**
+
+**Cách AI tối ưu hóa thời gian tính toán:**
+```python
+# Alpha-beta pruning giúp cắt bỏ các nhánh không cần thiết
+alpha = max(alpha, evaluation)
+if beta <= alpha:
+    break  # Cắt bỏ nhánh này, không cần tính tiếp
+```
+
+**Ví dụ tối ưu hóa:**
+```
+AI đang tính:
+├── Nước A: +100 điểm (đã biết)
+├── Nước B: -50 điểm (đang tính)
+│   ├── Phản ứng 1: -200 điểm
+│   └── Phản ứng 2: -150 điểm  
+└── Nước C: ? (chưa tính)
+
+→ AI dừng tính nước B vì đã biết nó tệ hơn nước A
+→ Tiết kiệm thời gian tính toán
+```
+
+#### **📊 Ảnh Hưởng Của Độ Sâu**
+|------------------------------------------------------------|
+| Độ Sâu  | Thời Gian Tính | Chất Lượng AI |      Mô Tả      |
+|---------|----------------|---------------|-----------------|
+| 1       | Rất nhanh      | Yếu           | Chỉ thấy 1 bước |
+| 2       | Nhanh          | Trung bình    |   Thấy 2 bước   |
+| 3       | Vừa phải       | Khá           |   Thấy 3 bước   |
+| 4       | Chậm           | Mạnh          |   Thấy 4 bước   |
+| 5+      | Rất chậm       | Rất mạnh      |   Thấy 5+ bước  |
+|------------------------------------------------------------|
+
+#### **🎮 Ví Dụ Thực Tế Trong Game**
+
+**Tình huống:** AI đang ở lượt đi, có thể chiếu hết trong 3 nước
+
+**Quy trình AI với Depth = 4:**
+```
+1. 🔍 Quét bàn cờ: Tìm 15 nước đi hợp lệ
+2. 🧠 Giả lập từng nước đi:
+   - Nước đi 1: Không dẫn đến chiếu hết
+   - Nước đi 2: Dẫn đến chiếu hết trong 3 nước
+   - Nước đi 3: Dẫn đến chiếu hết trong 2 nước
+   - ...
+3. 📊 Đánh giá:
+   - Nước đi 2: +5,000,000 điểm (chiếu hết)
+   - Nước đi 3: +5,000,000 điểm (chiếu hết nhanh hơn)
+   - Nước đi 1: +50 điểm (lợi thế nhỏ)
+4. 🎯 Chọn nước đi 3: Chiếu hết nhanh nhất
+```
+
+#### **💡 Lưu Ý Quan Trọng**
+
+**AI "Nhìn Trước" Có Nghĩa Là:**
+- ✅ **Mô phỏng tương lai:** AI thử tất cả khả năng có thể
+- ✅ **Giả định đối thủ hoàn hảo:** AI cho rằng đối thủ sẽ chơi tốt nhất
+- ✅ **Chọn nước đi an toàn:** AI chọn nước đi có điểm số tệ nhất vẫn cao nhất
+- ✅ **Tối ưu hóa thời gian:** AI bỏ qua các khả năng không cần thiết
+
+**AI "Nhìn Trước" KHÔNG Có Nghĩa Là:**
+- ❌ **Biết trước tương lai:** AI không biết đối thủ thực sự sẽ đi gì
+- ❌ **Đọc tâm trí:** AI không hiểu ý định của người chơi
+- ❌ **Có trực giác:** AI chỉ dựa vào tính toán, không có "cảm giác"
+
+**Kết Luận:**
+AI "nhìn trước" giống như một kỳ thủ giỏi luôn tính toán trước các hậu quả của mỗi nước đi. Càng nhìn xa, AI càng mạnh, nhưng cũng càng tốn thời gian suy nghĩ. Đây là nguyên lý cơ bản của thuật toán Minimax trong AI game.
+
 ---
 
-## 9. Câu hỏi thường gặp (FAQ)
+## 6. Câu hỏi thường gặp (FAQ)
 
 > **💡 Lưu ý:** Phần này trả lời các câu hỏi thường gặp từ người chơi và khán giả khi thuyết trình.
 
-### 9.1. Câu hỏi về thuật toán AI
+### 6.1. Câu hỏi về thuật toán AI
 
 #### **Q1: "AI có thực sự thông minh không, hay chỉ là tính toán đơn giản?"**
 **A:** AI trong game này sử dụng thuật toán **Minimax** và **Alpha-Beta Pruning** - đây là những thuật toán AI cổ điển nhưng rất hiệu quả cho cờ vua. AI không "thông minh" theo nghĩa có trực giác, mà thông minh nhờ:
@@ -1102,7 +1286,7 @@ def display_move(self, start_array, end_array, piece):
 - ❌ **Tính toán cơ học:** Chỉ dựa vào điểm số, không có "cảm giác"
 - ✅ **Cách đánh bại:** Tạo tình huống phức tạp mà AI không thể tính toán hết
 
-### 9.2. Câu hỏi về game và giao diện
+### 6.2. Câu hỏi về game và giao diện
 
 #### **Q4: "Tại sao AI đôi khi đi những nước đi kỳ lạ?"**
 **A:** AI có thể đi nước đi "kỳ lạ" vì:
@@ -1126,7 +1310,7 @@ def display_move(self, start_array, end_array, piece):
 - 📚 **Mục đích học tập:** Làm quen với lập trình đồ họa
 - 🎯 **Mở rộng tương lai:** Có thể tích hợp AI nhận diện khuôn mặt
 
-### 9.3. Câu hỏi về kỹ thuật và lập trình
+### 6.3. Câu hỏi về kỹ thuật và lập trình
 
 #### **Q7: "Tại sao phải dùng Python và Pygame?"**
 **A:** Lựa chọn công nghệ dựa trên:
@@ -1158,7 +1342,7 @@ python src/chesssetup.py
 - ✅ **Không cần GPU:** Chạy được trên mọi máy tính
 - ✅ **Không cần internet:** Chạy offline hoàn toàn
 
-### 9.4. Câu hỏi về dự án và phát triển
+### 6.4. Câu hỏi về dự án và phát triển
 
 #### **Q10: "Dự án này có ý nghĩa gì trong việc học AI?"**
 **A:** Dự án này có ý nghĩa quan trọng:
@@ -1185,7 +1369,7 @@ python src/chesssetup.py
 - 🏆 **Benchmark:** Có thể so sánh với các AI khác
 - 🎯 **Ứng dụng rộng:** Nguyên lý có thể áp dụng cho game khác
 
-### 9.5. Câu hỏi về thuyết trình và demo
+### 6.5. Câu hỏi về thuyết trình và demo
 
 #### **Q13: "Làm sao để demo game hiệu quả?"**
 **A:** Một số gợi ý cho demo:
@@ -1213,8 +1397,34 @@ python src/chesssetup.py
 
 ---
 
+## 📋 Tóm tắt dự án
+
+### 🎯 Mục tiêu đạt được
+- ✅ **Game cờ vua hoàn chỉnh** với giao diện đẹp mắt
+- ✅ **AI thông minh** sử dụng thuật toán Minimax + Alpha-Beta Pruning
+- ✅ **3 độ khó** có thể điều chỉnh (Easy, Medium, Hard)
+- ✅ **Demo pixel art** minh họa khả năng đồ họa
+- ✅ **Tài liệu chi tiết** giải thích thuật toán AI
+- ✅ **FAQ đầy đủ** cho người dùng và thuyết trình
+
+### 🚀 Tính năng nổi bật
+- 🤖 **AI "nhìn trước" 2-4 bước** tùy độ khó
+- 🎮 **Giao diện thân thiện** với lịch sử nước đi
+- 📊 **Đánh giá bàn cờ** dựa trên giá trị quân cờ
+- 🏆 **Phát hiện chiếu hết** và các trạng thái đặc biệt
+- 🎨 **Demo vẽ khuôn mặt** với mắt di chuyển theo chuột
+
+### 📚 Giá trị học tập
+- 🧠 **Hiểu sâu thuật toán AI** cổ điển và hiện đại
+- 💻 **Thực hành lập trình** Python và Pygame
+- 🎯 **Áp dụng lý thuyết** vào thực tế
+- 🔬 **Nghiên cứu và mở rộng** dự án
+
+---
+
 ### 5.3. Các trạng thái đặc biệt
 
+**Trạng thái kết thúc game:**
 ```python
 def checkmate_stalemate_checker(self):
     # 0: Quân trắng thắng (chiếu hết)
@@ -1224,26 +1434,26 @@ def checkmate_stalemate_checker(self):
 ```
 
 **Điểm số đặc biệt:**
-- Chiếu hết: ±5,000,000 điểm
-- Hòa: 100 điểm
-- Quân cờ bình thường: Theo giá trị quân cờ
+- **Chiếu hết:** ±5,000,000 điểm (ưu tiên cao nhất)
+- **Hòa:** 100 điểm (trạng thái trung tính)
+- **Quân cờ bình thường:** Theo giá trị quân cờ
 
 ---
 
-## 6. Giao diện và trải nghiệm người dùng
+## 7. Giao diện và trải nghiệm người dùng
 
-### 6.1. Giao diện khởi động (Tkinter)
+### 7.1. Giao diện khởi động (Tkinter)
 - 🎯 **Chọn chế độ chơi**: Người vs AI, AI vs AI, Người vs Người
 - 🎨 **Chọn màu quân**: Trắng hoặc đen
 - ⚙️ **Điều chỉnh độ khó**: Thay đổi độ sâu tìm kiếm (1-5)
 
-### 6.2. Giao diện chơi game (Pygame)
+### 7.2. Giao diện chơi game (Pygame)
 - ♟️ **Bàn cờ đẹp mắt** với ảnh quân cờ chất lượng cao
 - 📊 **Sidebar thông tin**: Lịch sử nước đi, thời gian, quân bị bắt
 - 🎯 **Highlight nước đi**: Hiển thị nước đi hợp lệ và nước đi vừa thực hiện
 - 🏆 **Popup kết thúc**: Thông báo chiến thắng/thua/hòa
 
-### 6.3. Tính năng đặc biệt
+### 7.3. Tính năng đặc biệt
 - 📝 **Lịch sử nước đi chi tiết**: Ký hiệu cờ vua chuẩn, thời gian, ăn quân
 - ♟️ **Phong cấp tốt**: Tự động hoặc chọn quân phong cấp
 - 🔄 **Hoàn tác nước đi**: Nhấn Z để quay lại
@@ -1251,22 +1461,22 @@ def checkmate_stalemate_checker(self):
 
 ---
 
-## 7. Demo vẽ khuôn mặt pixel
+## 8. Demo vẽ khuôn mặt pixel
 
-### 7.1. Giới thiệu
+### 8.1. Giới thiệu
 Demo vẽ khuôn mặt pixel là một phần bổ sung, không liên quan trực tiếp đến game cờ vua. Nó minh họa khả năng đồ họa của Pygame.
 
-### 7.2. Các loại khuôn mặt
+### 8.2. Các loại khuôn mặt
 - 👶 **Baby**: Khuôn mặt em bé với đôi mắt to tròn
 - 👨‍💼 **Adult**: Khuôn mặt người lớn với nét nghiêm túc
 - 👴 **Old**: Khuôn mặt người già với nếp nhăn
 
-### 7.3. Tính năng
+### 8.3. Tính năng
 - 👁️ **Mắt di chuyển** theo chuột
 - 🎨 **Hiệu ứng pixel** đẹp mắt
 - 🖱️ **Tương tác chuột** mượt mà
 
-### 7.4. Cách chạy
+### 8.4. Cách chạy
 ```bash
 # Chạy từng loại khuôn mặt
 python face_pixel/mẫu/baby.py
@@ -1276,22 +1486,22 @@ python face_pixel/mẫu/old.py
 
 ---
 
-## 8. Đóng góp và phát triển
+## 9. Đóng góp và phát triển
 
-### 8.1. Tính năng có thể mở rộng
+### 9.1. Tính năng có thể mở rộng
 - 🤖 **AI nhận diện khuôn mặt** cho demo pixel
 - 🌐 **Chế độ chơi online** nhiều người chơi
 - 📊 **Phân tích nước đi** và gợi ý chiến thuật
 - 🎵 **Âm thanh và hiệu ứng** cho game
 - 📱 **Giao diện mobile** responsive
 
-### 8.2. Cải tiến thuật toán AI
+### 9.2. Cải tiến thuật toán AI
 - 🧠 **Machine Learning** để cải thiện đánh giá bàn cờ
 - 📚 **Opening book** cho các nước đi khai cuộc
 - ⚡ **Parallel processing** để tăng tốc độ tính toán
 - 🎯 **Position evaluation** dựa trên vị trí quân cờ
 
-### 8.3. Đóng góp
+### 9.3. Đóng góp
 - 📝 **Báo cáo lỗi** và đề xuất cải tiến
 - 🔧 **Pull requests** với code mới
 - 📚 **Cải thiện tài liệu** và hướng dẫn
@@ -1308,6 +1518,7 @@ python face_pixel/mẫu/old.py
 ---
 
 ## 📄 Giấy phép
-Dự án này được phát triển cho mục đích học tập và nghiên cứu lưu ý ko được sử dụng để kinh doanh vì mục đích cá nhân. Mọi người có thể sử dụng, chỉnh sửa và phân phối theo giấy phép MIT .
+
+Dự án này được phát triển cho mục đích học tập và nghiên cứu. **Lưu ý:** Không được sử dụng để kinh doanh vì đây là dự án cá nhân. Mọi người có thể sử dụng, chỉnh sửa và phân phối theo giấy phép MIT.
 
 
