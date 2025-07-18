@@ -73,7 +73,7 @@ class ChessInterface:
 
         # --- Nút Chơi Đôi ---
         self.button_solo = tk.Button(self.root,
-                                text="Chơi Đôi",
+                                text="Người đấu Người",
                                 command=self.button_clicked_solo,
                                 activebackground="#3399ff", activeforeground="white",
                                 anchor="center", bd=3, bg="#00FF00", cursor="hand2",
@@ -85,7 +85,7 @@ class ChessInterface:
 
         # --- Nút Chơi với AI ---
         self.button_play_with_AI = tk.Button(self.root,
-                                        text="Chơi với AI",
+                                        text="Đấu với Máy",
                                         command=self.button_clicked_AI,
                                         activebackground="#3399ff", activeforeground="white",
                                         anchor="center", bd=3, bg="#00FF00", cursor="hand2",
